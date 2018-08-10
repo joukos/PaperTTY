@@ -205,8 +205,9 @@ def scrub(size):
 @click.option('--size', default=8, help='Font size', show_default=True)
 @click.option('--width', default=None, help='Fit to width [default: display width / font width]')
 @click.option('--portrait', default=False, is_flag=True, help='Use portrait orientation', show_default=True)
+@click.option('--nofold', default=False, is_flag=True, help="Don't fold the input", show_default=True)
 @click.option('--spacing', default=0, help='Line spacing for the text', show_default=True)
-def stdin(font, size, width, portrait, spacing):
+def stdin(font, size, width, portrait, nofold, spacing):
     """Display standard input and leave it on screen"""
     if not epd:
         exit("Display is not configured, use top-level option '--model', aborting.")
@@ -216,12 +217,13 @@ def stdin(font, size, width, portrait, spacing):
         error("The font '{}' could not be found, aborting.".format(font))
 
     text = sys.stdin.read()
-    if width:
-        text = fold(text, width)
-    else:
-        font_width = ft.getsize('M')[0]
-        max_width = int((_PAPER_WIDTH - 8) / font_width) if portrait else int(_PAPER_HEIGHT / font_width)
-        text = fold(text, width=max_width)
+    if not nofold:
+        if width:
+            text = fold(text, width)
+        else:
+            font_width = ft.getsize('M')[0]
+            max_width = int((_PAPER_WIDTH - 8) / font_width) if portrait else int(_PAPER_HEIGHT / font_width)
+            text = fold(text, width=max_width)
     showtext(text, fill = _BLACK, font = ft, size = size, portrait = portrait, spacing = spacing)
 
 
