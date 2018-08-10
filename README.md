@@ -44,7 +44,7 @@ You'll need Waveshare's demo code package for your display. [Here](https://www.w
 
 Run `sudo ./papertty.py` to get help.
 
-- You'll want to `sudo` unless you've set it up so that SPI works without and you've given read access to `dev/vcsa*`
+- You'll want to `sudo` unless you've set it up so that SPI works without and you've given read access to `/dev/vcsa*`
 
 To do anything, you'll need to tell the script which model you're using - in my case this would be **`epd2in13`** and therefore I should also have `epd2in13.py` in the current directory.
 
