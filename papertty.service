@@ -1,0 +1,15 @@
+[Unit]
+Description=PaperTTY
+DefaultDependencies=no
+
+[Service]
+Type=simple
+WorkingDirectory=/home/pi/code/papertty
+ExecStart=/home/pi/code/papertty/papertty.py --model epd2in13 terminal --rows 17 --cols 50
+KillSignal=SIGINT
+TimeoutStopSec=15
+Restart=on-failure
+
+[Install]
+WantedBy=sysinit.target
+
