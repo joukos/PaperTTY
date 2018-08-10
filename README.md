@@ -79,12 +79,13 @@ Option | Description | Default
 `--size N` | Font size | `8` 
 `--width N` | Fit to a particular width (characters) | display width / font width
 `--portrait` | Enable portrait mode | disabled
+`--nofold` | Disable folding (ie. don't wrap to width) | disabled
 `--spacing` | Set line spacing | `0` 
 
 
 ```sh
 # Example
-cowsay "Hello World" | sudo ./papertty.py --model epd2in13 stdin
+cowsay "Hello World" | sudo ./papertty.py --model epd2in13 stdin --nofold
 ```
 
 **Render a virtual terminal**
