@@ -69,7 +69,7 @@ Option | Description | Default
 sudo ./papertty.py --model epd2in13 scrub
 ```
 
-**Render standard output**
+**Render standard input**
 
 Render `stdin` on the display, simple as that. Leaves the image on the display until something else overwrites it. Very useful for showing script output or just about anything that updates irregularly.
 
