@@ -15,6 +15,7 @@ This is an experimental command-line driven Python module to render the contents
 - Especially with a small font, it is fast enough for interactive use but could be improved to be [even faster](http://benkrasnow.blogspot.com/2017/10/fast-partial-refresh-on-42-e-paper.html).
 - Only the changed region is updated on the display, so typing is faster than full screen scrolling.
 - The cursor is also drawn and the image updated as it moves.
+- Flicker-free
 - Allows changing the font, font size, orientation and some other parameters.
 - Bundled with a `systemd` service unit to start the service early at boot and gracefully stop it.
 
