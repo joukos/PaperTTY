@@ -271,11 +271,14 @@ def valid_vcsa(vcsa):
 @click.option('--flipx', default=False, is_flag=True, help='Flip X axis (EXPERIMENTAL/BROKEN)', show_default=False)
 @click.option('--flipy', default=False, is_flag=True, help='Flip Y axis (EXPERIMENTAL/BROKEN)', show_default=False)
 @click.option('--spacing', default=0, help='Line spacing for the text', show_default=True)
-def terminal(vcsa, font, size, noclear, nocursor, sleep, ttyrows, ttycols, portrait, flipx, flipy, spacing):
+@click.option('--scrub', 'apply_scrub', is_flag=True, default=False, help='Apply scrub when starting up', show_default=True)
+def terminal(vcsa, font, size, noclear, nocursor, sleep, ttyrows, ttycols, portrait, flipx, flipy, spacing, apply_scrub):
     """Display virtual console on an e-Paper display, exit with Ctrl-C."""
     if not epd:
         exit("Display is not configured, use top-level option '--model', aborting.")
-
+    if apply_scrub:
+        fill(_BLACK, fillsize=16)
+        fill(_WHITE, fillsize=16)
     oldbuff = ''
     oldimage = None
     oldcursor = None

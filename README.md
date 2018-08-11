@@ -120,6 +120,7 @@ Option | Description | Default
 `--flipx` | Mirror X axis (experimental / buggy) | disabled
 `--flipy` | Mirror Y axis (experimental / buggy) | disabled
 `--spacing` | Set line spacing | `0` 
+`--scrub` | Apply scrub when starting | disabled
 
 
 ```sh
@@ -179,9 +180,11 @@ To have the display turn on at boot, **edit** the command you're happy with into
 
 ```sh
 ...
-# Remember: you probably want to set rows and cols here, because at reboot they're reset
+# Remember: you probably want to set rows and cols here, because at reboot they're reset.
+# Also, when booting up the display may have some artifacts on it so you may want to add --scrub 
+# to get a clean display (during boot it's a bit slower than usual)
 WorkingDirectory=/home/pi/code/papertty
-ExecStart=/home/pi/code/papertty/papertty.py --model epd2in13 terminal --rows 17 --cols 50
+ExecStart=/home/pi/code/papertty/papertty.py --model epd2in13 terminal --rows 17 --cols 50 --scrub
 ...
 ```
 
