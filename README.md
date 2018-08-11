@@ -25,7 +25,13 @@ This is an experimental command-line driven Python module to render the contents
 
 ## Screenshots
 
+**Collage of running various programs in `tmux**`
+
 ![](pics/collage.png)
+
+**Running Nethack outside in the noon sun, powered directly by a solar panel, connected to a Bluetooth keyboard**
+
+![](pics/sunlight.jpg)
 
 ## Installation
 
