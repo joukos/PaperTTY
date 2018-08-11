@@ -33,6 +33,10 @@ This is an experimental command-line driven Python module to render the contents
 
 ![](pics/sunlight.jpg)
 
+**Action video**
+
+[![Youtube Video](https://img.youtube.com/vi/mXBS4l3OvyE/0.jpg)](https://www.youtube.com/watch?v=mXBS4l3OvyE)
+
 ## Installation
 
 All of the code was written on Raspbian Stretch and relies on system packages. These instructions assume you're going to run this on a Raspberry Pi, otherwise you're on your own. 
