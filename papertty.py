@@ -117,10 +117,8 @@ def showtext(text,fill,font=None,size=None,cursor=None,portrait=False,flipx=Fals
         image = image.rotate(90, expand=True)
     # apply flips if desired
     if flipx:
-        print("flip x")
         image = image.transpose(Image.FLIP_LEFT_RIGHT)
     if flipy:
-        print("flip y")
         image = image.transpose(Image.FLIP_TOP_BOTTOM)
     # find out which part changed and draw only that on the display
     if oldimage:
