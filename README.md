@@ -25,7 +25,7 @@ This is an experimental command-line driven Python module to render the contents
 
 ## Screenshots
 
-**Collage of running various programs in `tmux**`
+**Collage of running various programs in `tmux`**
 
 ![](pics/collage.png)
 
