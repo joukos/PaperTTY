@@ -8,6 +8,14 @@ This is an experimental command-line driven Python module to render the contents
 
 *Note: I am also not affiliated with Waveshare in any way.*
 
+#### *Updates*
+
+- **2018-08-13**
+  - After browsing the Waveshare Wiki a bit, it seems that the smaller models support partial refresh out of the box but the bigger ones need some (hopefully minor) modification, if I ever get one I'll look into it
+    - My guess is that this code should work as-is on the **Black/White 1.54", 2.13" and 2.9"** models - no guarantees though
+    - The **2.7", 4.2", 5.83", 7.5"** models have slightly different code and need LUT modification or some hacking to achieve partial refresh, and I'm not sure if it's feasible to get it to work with the color models at all
+    - Modifying the code to work with full refreshes should be pretty easy if you happen to own one of the bigger monochrome displays
+
 #### Some features
 
 - Designed to be used with a **Raspberry Pi** and Raspbian.
