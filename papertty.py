@@ -294,7 +294,7 @@ def terminal(vcsa, font, size, noclear, nocursor, sleep, ttyrows, ttycols, portr
 	    if not noclear:
 		showtext(oldbuff, fill=_WHITE, **textargs)
 	    sys.exit(0)
-    # toggle scrub flag when SIGHUP received
+    # toggle scrub flag when SIGUSR1 received
     def sigusr1_handler(sig, frame):
             print("Scrubbing display (SIGUSR1)...")
             flags['scrub_requested'] = True
@@ -317,7 +317,7 @@ def terminal(vcsa, font, size, noclear, nocursor, sleep, ttyrows, ttycols, portr
             set_tty_size(ttydev(vcsa), ttyrows, ttycols)
         print("Started displaying {}, minimum update interval {} s, exit with Ctrl-C".format(vcsa, sleep))
         while True:
-            # if SIGHUP toggled the scrub flag, scrub display and start with a fresh image
+            # if SIGUSR1 toggled the scrub flag, scrub display and start with a fresh image
             if flags['scrub_requested']:
                 scrub_bw()
                 # clear old image and buffer and restore flag
