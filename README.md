@@ -104,6 +104,14 @@ The most prominent feature.
 
 This requires read permission to the virtual console device (`/dev/vcsa[1-63]`) and optionally write permission to the associated terminal device (`/dev/tty[1-63]`) if you want to set the TTY size via `ioctl`s. 
 
+**The process handles two signals:**
+
+- **`SIGINT`** - stop and clear the screen (unless `--noclear` was given), same as pressing Ctrl-C
+    - `sudo kill -INT $(pidof -x papertty.py)`
+    - By default, the `systemd` service unit attempts to stop the process using SIGINT
+- **`SIGUSR1`** - apply scrub and keep running
+    - `sudo kill -USR1 $(pidof -x papertty.py)`
+
 See details on how all of this works further down this document.
 
 Option | Description | Default
@@ -174,17 +182,27 @@ You can kill the `papertty.py` process at any time - the stuff that runs in the 
 
 #### Start up at boot
 
-A simple `systemd` service unit file is included with the package, called `papertty.service`.
+A simple `systemd` service unit file is included with the package, called `papertty.service`. It calls `start.sh` so that instead of editing the service file, you can edit the start script (and easily add whatever you need) without needing to run `systemctl daemon-reload` all the time.
+- You can simply put the command in the service file too, it's your choice
+- You probably want to set the script to be owned and writable by root only: `sudo chown root:root start.sh; sudo chmod 700 start.sh`
 
-To have the display turn on at boot, **edit** the command you're happy with into `papertty.service` and remember to also set the working directory:
+To have the display turn on at boot, first **edit** the command you're happy with into `start.sh`:
+
+```sh
+# Remember: you probably want to set rows and cols here, because at reboot they're reset.
+# Also, when booting up after a power cycle the display may have some artifacts on it, so 
+# you may want to add --scrub to get a clean display (during boot it's a bit slower than usual)
+./papertty.py --model epd2in13 terminal --rows 17 --cols 50 --scrub
+```
+
+Then make sure you have the right paths set in the service file:
 
 ```sh
 ...
-# Remember: you probably want to set rows and cols here, because at reboot they're reset.
-# Also, when booting up the display may have some artifacts on it so you may want to add --scrub 
-# to get a clean display (during boot it's a bit slower than usual)
-WorkingDirectory=/home/pi/code/papertty
-ExecStart=/home/pi/code/papertty/papertty.py --model epd2in13 terminal --rows 17 --cols 50 --scrub
+### Change the paths below to match yours
+WorkingDirectory=/home/pi/code/PaperTTY
+ExecStart=/home/pi/code/PaperTTY/start.sh
+###
 ...
 ```
 
@@ -210,7 +228,9 @@ sudo systemctl stop papertty
 # (the service should stop and the display should be cleared, unless you used --noclear)
 ```
 
-If the service seemed to work, try rebooting and enjoy watching the bootup.
+If the service seemed to work, try rebooting and enjoy watching the bootup. If you need to scrub the display while the service is running, you can send the `SIGUSR1` signal to the process.
+
+If the service didn't work, check that the paths are correct and that `start.sh` has the execute bit set.
 
 ---
 

@@ -4,11 +4,14 @@ DefaultDependencies=no
 
 [Service]
 Type=simple
-WorkingDirectory=/home/pi/code/papertty
-ExecStart=/home/pi/code/papertty/papertty.py --model epd2in13 terminal --rows 17 --cols 50
 KillSignal=SIGINT
-TimeoutStopSec=15
+TimeoutStopSec=8
 Restart=on-failure
+
+### Change the paths below to match yours
+WorkingDirectory=/home/pi/code/PaperTTY
+ExecStart=/home/pi/code/PaperTTY/start.sh
+###
 
 [Install]
 WantedBy=sysinit.target

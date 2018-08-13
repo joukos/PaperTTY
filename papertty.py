@@ -148,6 +148,11 @@ def fill(color, fillsize = 16):
             epd.set_frame_memory(image, x, 0)
             epd.display_frame()
 
+def scrub_bw(size = 16):
+    """Fill screen with black, then white"""
+    fill(_BLACK, fillsize=size)
+    fill(_WHITE, fillsize=size)
+
 
 def split(s, n):
     """Split a sequence into parts of size n"""
@@ -194,8 +199,7 @@ def scrub(size):
     """Slowly fill with black, then white"""
     if not epd:
         exit("Display is not configured, use top-level option '--model', aborting.")
-    fill(_BLACK, fillsize=size)
-    fill(_WHITE, fillsize=size)
+    scrub_bw(size = size)
 
 
 @click.command()
@@ -277,19 +281,25 @@ def terminal(vcsa, font, size, noclear, nocursor, sleep, ttyrows, ttycols, portr
     if not epd:
         exit("Display is not configured, use top-level option '--model', aborting.")
     if apply_scrub:
-        fill(_BLACK, fillsize=16)
-        fill(_WHITE, fillsize=16)
+        scrub_bw()
     oldbuff = ''
     oldimage = None
     oldcursor = None
+    # dirty - should refactor to make this cleaner
+    flags = { 'scrub_requested': False }
 
     # handle SIGINT from `systemctl stop` and Ctrl-C
     def sigint_handler(sig, frame):
-            print("Exiting by SIGINT...")
+            print("Exiting (SIGINT)...")
 	    if not noclear:
 		showtext(oldbuff, fill=_WHITE, **textargs)
 	    sys.exit(0)
+    # toggle scrub flag when SIGHUP received
+    def sigusr1_handler(sig, frame):
+            print("Scrubbing display (SIGUSR1)...")
+            flags['scrub_requested'] = True
     signal.signal(signal.SIGINT, sigint_handler)
+    signal.signal(signal.SIGUSR1, sigusr1_handler)
 
     # load the font
     if os.path.isfile(font):
@@ -307,6 +317,13 @@ def terminal(vcsa, font, size, noclear, nocursor, sleep, ttyrows, ttycols, portr
             set_tty_size(ttydev(vcsa), ttyrows, ttycols)
         print("Started displaying {}, minimum update interval {} s, exit with Ctrl-C".format(vcsa, sleep))
         while True:
+            # if SIGHUP toggled the scrub flag, scrub display and start with a fresh image
+            if flags['scrub_requested']:
+                scrub_bw()
+                # clear old image and buffer and restore flag
+                oldimage = None
+                oldbuff = ''
+                flags['scrub_requested'] = False
 	    with open(vcsa, 'rb') as f:
 		# read the first 4 bytes to get the console attributes
 		attributes = f.read(4)
