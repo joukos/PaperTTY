@@ -58,7 +58,7 @@ You'll need Waveshare's demo code package for your display. [Here](https://www.w
 2. Copy the files `epdXinY.py` (filename depends on display model) and `epdif.py` to the same directory with `papertty.py`
 3. Install some Python 2 packages: `sudo apt install python-imaging python-click`
     - You could also use a virtualenv
-4. Find a nice *monospaced* TrueType font: Andale Mono (`sudo apt install ttf-mscorefonts-installer`) is pretty great for very small sizes and on the 2.13" (128x250 pixels) can fit 17 rows and 50 columns
+4. Find a nice *monospaced* TrueType or bitmap font: Andale Mono (`sudo apt install ttf-mscorefonts-installer`) is pretty great for very small sizes and on the 2.13" (128x250 pixels) can fit 17 rows and 50 columns
     - You *can* use a proportional font but the terminal will probably look horrible
 
 ## Fonts
@@ -113,7 +113,7 @@ Render `stdin` on the display, simple as that. Leaves the image on the display u
 
 Option | Description | Default
 ---    | --- | ---
-`--font FILENAME` | Path to a TrueType font to use - **strongly recommended to use monospaced** | `Andale_Mono.ttf`
+`--font FILENAME` | Path to a TrueType or PIL font to use - **strongly recommended to use monospaced** | `Andale_Mono.ttf`
 `--size N` | Font size | `8` 
 `--width N` | Fit to a particular width (characters) | display width / font width
 `--portrait` | Enable portrait mode | disabled
@@ -145,7 +145,7 @@ See details on how all of this works further down this document.
 Option | Description | Default
 ---    | --- | ---
 `--vcsa FILENAME` | Virtual console device (`/dev/vcsa[1-63]`) | `/dev/vcsa1`
-`--font FILENAME` | Path to a TrueType font to use - **strongly recommended to use monospaced** | `Andale_Mono.ttf`
+`--font FILENAME` | Path to a TrueType or PIL font to use - **strongly recommended to use monospaced** | `Andale_Mono.ttf`
 `--size N` | Font size | `8` 
 `--noclear` | Leave display content on exit | disabled
 `--nocursor` | Don't draw cursor | disabled
