@@ -327,14 +327,14 @@ def terminal(vcsa, font, size, noclear, nocursor, sleep, ttyrows, ttycols, portr
 
     # handle SIGINT from `systemctl stop` and Ctrl-C
     def sigint_handler(sig, frame):
-            print("Exiting (SIGINT)...")
-	    if not noclear:
-		showtext(oldbuff, fill=_WHITE, **textargs)
-	    sys.exit(0)
+        print("Exiting (SIGINT)...")
+        if not noclear:
+            showtext(oldbuff, fill=_WHITE, **textargs)
+            sys.exit(0)
     # toggle scrub flag when SIGUSR1 received
     def sigusr1_handler(sig, frame):
-            print("Scrubbing display (SIGUSR1)...")
-            flags['scrub_requested'] = True
+        print("Scrubbing display (SIGUSR1)...")
+        flags['scrub_requested'] = True
     signal.signal(signal.SIGINT, sigint_handler)
     signal.signal(signal.SIGUSR1, sigusr1_handler)
 
@@ -367,31 +367,31 @@ def terminal(vcsa, font, size, noclear, nocursor, sleep, ttyrows, ttycols, portr
                 oldimage = None
                 oldbuff = ''
                 flags['scrub_requested'] = False
-	    with open(vcsa, 'rb') as f:
-		# read the first 4 bytes to get the console attributes
-		attributes = f.read(4)
-		rows, cols, x, y = list(map(ord, struct.unpack('cccc', attributes)))
-		
-		# read rest of the console content into buffer
-		buff = f.read()
-		# SKIP all the attribute bytes
-		# (change this (and write more code!) if you want to use the attributes with a
-		# three-color display)
-		buff = buff[0::2]
-		# find character under cursor (in case using a non-fixed width font)
-		char_under_cursor = buff[y * rows + x]
-		cursor = (x, y, char_under_cursor)
-		# add newlines per column count
-		buff = ''.join( [ r + '\n' for r in split(buff, cols) ] )
-		# do something only if content has changed or cursor was moved
-		if buff != oldbuff or cursor != oldcursor:
-		    # show new content
-		    oldimage = showtext(buff, fill=_BLACK, cursor = cursor if not nocursor else None, oldimage = oldimage, **textargs)
-		    oldbuff = buff
-		    oldcursor = cursor
-		else:
-		    # delay before next update check
-		    time.sleep(float(sleep))
+            with open(vcsa, 'rb') as f:
+                # read the first 4 bytes to get the console attributes
+                attributes = f.read(4)
+                rows, cols, x, y = list(map(ord, struct.unpack('cccc', attributes)))
+
+                # read rest of the console content into buffer
+                buff = f.read()
+                # SKIP all the attribute bytes
+                # (change this (and write more code!) if you want to use the attributes with a
+                # three-color display)
+                buff = buff[0::2]
+                # find character under cursor (in case using a non-fixed width font)
+                char_under_cursor = buff[y * rows + x]
+                cursor = (x, y, char_under_cursor)
+                # add newlines per column count
+                buff = ''.join( [ r + '\n' for r in split(buff, cols) ] )
+                # do something only if content has changed or cursor was moved
+                if buff != oldbuff or cursor != oldcursor:
+                    # show new content
+                    oldimage = showtext(buff, fill=_BLACK, cursor = cursor if not nocursor else None, oldimage = oldimage, **textargs)
+                    oldbuff = buff
+                    oldcursor = cursor
+                else:
+                    # delay before next update check
+                    time.sleep(float(sleep))
 
 
 if __name__ == '__main__':
