@@ -343,7 +343,7 @@ def terminal(vcsa, font, size, noclear, nocursor, sleep, ttyrows, ttycols, portr
 		# do something only if content has changed or cursor was moved
 		if buff != oldbuff or cursor != oldcursor:
 		    # show new content
-		    oldimage = showtext(buff, fill=_BLACK, cursor = cursor, oldimage = oldimage, **textargs)
+		    oldimage = showtext(buff, fill=_BLACK, cursor = cursor if not nocursor else None, oldimage = oldimage, **textargs)
 		    oldbuff = buff
 		    oldcursor = cursor
 		else:
