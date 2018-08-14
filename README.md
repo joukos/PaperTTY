@@ -157,6 +157,7 @@ Option | Description | Default
 `--flipy` | Mirror Y axis (experimental / buggy) | disabled
 `--spacing` | Set line spacing | `0` 
 `--scrub` | Apply scrub when starting | disabled
+`--autofit` | Try to automatically set terminal rows/cols for the font | disabled
 
 
 ```sh
@@ -167,6 +168,10 @@ sudo ./papertty.py --model epd2in13 terminal
 
 # set font size to 16, update every 10 seconds, set terminal rows/cols to 10x20
 sudo ./papertty.py --model epd2in13 terminal --size 16 --sleep 10 --rows 10 --cols 20
+
+# auto-fit terminal rows/cols for the font and use a bitmap font
+# (fitting may not work for very small fonts in portrait mode because of terminal restrictions)
+sudo ./papertty.py --model epd2in13 terminal --autofit --font myfont.pil
 ```
 
 ## How to use the terminal
@@ -220,7 +225,7 @@ To have the display turn on at boot, first **edit** the command you're happy wit
 # Remember: you probably want to set rows and cols here, because at reboot they're reset.
 # Also, when booting up after a power cycle the display may have some artifacts on it, so 
 # you may want to add --scrub to get a clean display (during boot it's a bit slower than usual)
-./papertty.py --model epd2in13 terminal --rows 17 --cols 50 --scrub
+./papertty.py --model epd2in13 terminal --autofit --scrub
 ```
 
 Then make sure you have the right paths set in the service file:

@@ -8,4 +8,4 @@
 ## sudo chown root:root start.sh; sudo chmod 700 start.sh
 ##
 
-./papertty.py --model epd2in13 terminal --rows 17 --cols 50
+./papertty.py --model epd2in13 terminal --autofit --scrub

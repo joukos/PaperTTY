@@ -82,6 +82,21 @@ def set_tty_size(tty, rows, cols):
         fcntl.ioctl(tty.fileno(), termios.TIOCSWINSZ, size)
 
 
+def font_height(font, spacing=0):
+    """Calculate 'actual' height of a font"""
+    # check if font is a TrueType font
+    truetype = isinstance(font, ImageFont.FreeTypeFont)
+    # dirty trick to get "maximum height"
+    fh = font.getsize('hg')[1]
+    # get descent value
+    descent = font.getmetrics()[1] if truetype else 0
+    # the reported font size
+    size = font.size if truetype else fh
+    # Why descent/2? No idea, but it works "well enough" with
+    # big and small sizes
+    return size - (descent / 2) + spacing
+
+
 def showtext(text,fill,font=None,size=None,cursor=None,portrait=False,flipx=False,flipy=False,oldimage=None,spacing=0):
     """Draw a string on the screen"""
     # set order of h, w according to orientation
@@ -89,8 +104,6 @@ def showtext(text,fill,font=None,size=None,cursor=None,portrait=False,flipx=Fals
     # create the Draw object and draw the text
     draw = ImageDraw.Draw(image)
     draw.text((0, 0), text, font = font, fill = fill, spacing = spacing)
-    # check if font is a TrueType font
-    truetype = isinstance(font, ImageFont.FreeTypeFont)
 
     # if we want a cursor, draw it - the most convoluted part
     if cursor:
@@ -98,17 +111,10 @@ def showtext(text,fill,font=None,size=None,cursor=None,portrait=False,flipx=Fals
         # get the width of the character under cursor
         # (in case we didn't use a fixed width font...)
         fw = font.getsize(cursor[2])[0]
-        # dirty trick to get "maximum height"
-        fh = font.getsize('hg')[1]
         # desired cursor width
         cur_width = fw - 1
-        # get descent value
-        descent = font.getmetrics()[1] if truetype else 0
-        # the reported font size
-        size = font.size if truetype else fh
-        # Why descent/2? No idea, but it works "well enough" with
-        # big and small sizes
-        HEIGHT = size - (descent / 2) + spacing
+        # get font height
+        HEIGHT = font_height(font, spacing)
         # starting X is the font width times current column
         start_x = cur_x * fw
         # add 1 because rows start at 0 and we want the cursor at the bottom
@@ -151,10 +157,22 @@ def fill(color, fillsize = 16):
             epd.set_frame_memory(image, x, 0)
             epd.display_frame()
 
+
 def scrub_bw(size = 16):
     """Fill screen with black, then white"""
     fill(_BLACK, fillsize=size)
     fill(_WHITE, fillsize=size)
+
+
+def fit(font, portrait=False, spacing=0):
+    """Return the maximum columns and rows we can display with this font"""
+    truetype = isinstance(font, ImageFont.FreeTypeFont)
+    width = font.getsize('M')[0]
+    height = font_height(font, spacing)
+    # hacky, subtract just a bit to avoid going over the border with small fonts
+    PW = _PAPER_WIDTH - 3
+    PH = _PAPER_HEIGHT
+    return (PW if portrait else PH) / width, (PH if portrait else PW) / height
 
 
 def split(s, n):
@@ -294,7 +312,8 @@ def load_font(path, size):
 @click.option('--flipy', default=False, is_flag=True, help='Flip Y axis (EXPERIMENTAL/BROKEN)', show_default=False)
 @click.option('--spacing', default=0, help='Line spacing for the text', show_default=True)
 @click.option('--scrub', 'apply_scrub', is_flag=True, default=False, help='Apply scrub when starting up', show_default=True)
-def terminal(vcsa, font, size, noclear, nocursor, sleep, ttyrows, ttycols, portrait, flipx, flipy, spacing, apply_scrub):
+@click.option('--autofit', is_flag=True, default=False, help='Autofit terminal size to font size', show_default=True)
+def terminal(vcsa, font, size, noclear, nocursor, sleep, ttyrows, ttycols, portrait, flipx, flipy, spacing, apply_scrub, autofit):
     """Display virtual console on an e-Paper display, exit with Ctrl-C."""
     if not epd:
         exit("Display is not configured, use top-level option '--model', aborting.")
@@ -333,6 +352,12 @@ def terminal(vcsa, font, size, noclear, nocursor, sleep, ttyrows, ttycols, portr
     if valid_vcsa(vcsa):
         if all([ttyrows, ttycols]):
             set_tty_size(ttydev(vcsa), ttyrows, ttycols)
+        else:
+            # if size not specified manually, see if autofit was requested
+            if autofit:
+                max_dim = fit(ft, portrait, spacing)
+                print("Automatic resize of TTY to {} rows, {} columns".format(max_dim[1], max_dim[0]))
+                set_tty_size(ttydev(vcsa), max_dim[1], max_dim[0])
         print("Started displaying {}, minimum update interval {} s, exit with Ctrl-C".format(vcsa, sleep))
         while True:
             # if SIGUSR1 toggled the scrub flag, scrub display and start with a fresh image
