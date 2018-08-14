@@ -10,6 +10,8 @@ This is an experimental command-line driven Python module to render the contents
 
 #### *Updates*
 
+- **2018-08-14**
+  - Added support for PIL bitmap fonts (autodetected)
 - **2018-08-13**
   - After browsing the Waveshare Wiki a bit, it seems that the smaller models support partial refresh out of the box but the bigger ones need some (hopefully minor) modification, if I ever get one I'll look into it
     - My guess is that this code should work as-is on the **Black/White 1.54", 2.13" and 2.9"** models - no guarantees though
@@ -25,6 +27,7 @@ This is an experimental command-line driven Python module to render the contents
 - The cursor is also drawn and the image updated as it moves.
 - Flicker-free
 - Allows changing the font, font size, orientation and some other parameters.
+- Supports TrueType and bitmap fonts (in PIL format)
 - Bundled with a `systemd` service unit to start the service early at boot and gracefully stop it.
 
 **It isn't perfect and has only been tested with the monochrome 2.13" HAT, but it *might* work for other models too, and allows you to at least *try*.**
@@ -57,6 +60,23 @@ You'll need Waveshare's demo code package for your display. [Here](https://www.w
     - You could also use a virtualenv
 4. Find a nice *monospaced* TrueType font: Andale Mono (`sudo apt install ttf-mscorefonts-installer`) is pretty great for very small sizes and on the 2.13" (128x250 pixels) can fit 17 rows and 50 columns
     - You *can* use a proportional font but the terminal will probably look horrible
+
+## Fonts
+
+You can use TrueType fonts or bitmap fonts, but the bitmap fonts need to be in the right format. With bitmap fonts the `--size` option is ignored.
+
+Python imaging library includes a utility called `pilfont`, you can use this to convert a PCF font file into `.pil` (I didn't have luck with BDF fonts):
+
+```
+# convert Terminus 
+gunzip -c /usr/share/fonts/X11/misc/ter-u12b_unicode.pcf.gz > terminus-12.pcf
+pilfont terminus-12.pcf
+# you should get terminus-12.pil that you can pass with the --font option
+```
+
+![](pics/terminus.jpg)
+
+All font options expect a path to the font file - the system font directories are not searched for them.
 
 ## Usage
 

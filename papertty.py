@@ -89,6 +89,9 @@ def showtext(text,fill,font=None,size=None,cursor=None,portrait=False,flipx=Fals
     # create the Draw object and draw the text
     draw = ImageDraw.Draw(image)
     draw.text((0, 0), text, font = font, fill = fill, spacing = spacing)
+    # check if font is a TrueType font
+    truetype = isinstance(font, ImageFont.FreeTypeFont)
+
     # if we want a cursor, draw it - the most convoluted part
     if cursor:
         cur_x, cur_y = cursor[0], cursor[1]
@@ -100,9 +103,9 @@ def showtext(text,fill,font=None,size=None,cursor=None,portrait=False,flipx=Fals
         # desired cursor width
         cur_width = fw - 1
         # get descent value
-        descent = font.getmetrics()[1]
+        descent = font.getmetrics()[1] if truetype else 0
         # the reported font size
-        size = font.size
+        size = font.size if truetype else fh
         # Why descent/2? No idea, but it works "well enough" with
         # big and small sizes
         HEIGHT = size - (descent / 2) + spacing
@@ -203,7 +206,7 @@ def scrub(size):
 
 
 @click.command()
-@click.option('--font', default=defaultfont, help='Path to a TrueType font', show_default=True)
+@click.option('--font', default=defaultfont, help='Path to a TrueType or PIL font', show_default=True)
 @click.option('--size', default=8, help='Font size', show_default=True)
 @click.option('--width', default=None, help='Fit to width [default: display width / font width]')
 @click.option('--portrait', default=False, is_flag=True, help='Use portrait orientation', show_default=True)
@@ -214,7 +217,7 @@ def stdin(font, size, width, portrait, nofold, spacing):
     if not epd:
         exit("Display is not configured, use top-level option '--model', aborting.")
     if os.path.isfile(font):
-        ft = ImageFont.truetype(font, size)
+        ft = load_font(font, size)
     else:
         error("The font '{}' could not be found, aborting.".format(font))
 
@@ -262,9 +265,24 @@ def valid_vcsa(vcsa):
     return True
 
 
+def load_font(path, size):
+    """Load the PIL or TrueType font"""
+    try:
+        # first check if the font looks like a PILfont
+        with open(path, 'rb') as f:
+            if f.readline() == b"PILfont\n":
+                font = ImageFont.load(path)
+        # otherwise assume it's a TrueType font
+            else:
+                font = ImageFont.truetype(path, size)
+    except IOError:
+        error("Invalid font: '{}'".format(path))
+    return font
+
+
 @click.command()
 @click.option('--vcsa', default='/dev/vcsa1', help='Virtual console device (/dev/vcsa[1-63])', show_default=True)
-@click.option('--font', default=defaultfont, help='Path to a TrueType font', show_default=True)
+@click.option('--font', default=defaultfont, help='Path to a TrueType or PIL font', show_default=True)
 @click.option('--size', default=8, help='Font size', show_default=True)
 @click.option('--noclear', default=False, is_flag=True, help='Leave display content on exit')
 @click.option('--nocursor', default=False, is_flag=True, help="Don't draw the cursor")
@@ -303,7 +321,7 @@ def terminal(vcsa, font, size, noclear, nocursor, sleep, ttyrows, ttycols, portr
 
     # load the font
     if os.path.isfile(font):
-        ft = ImageFont.truetype(font, size)
+        ft = load_font(font, size)
     else:
         error("The font '{}' could not be found, aborting.".format(font))
 
