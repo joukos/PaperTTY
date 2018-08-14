@@ -142,7 +142,7 @@ Option | Description | Default
 ```sh
 # Examples
 
-# by default the first virtual terminal (`/dev/vcsa1`/`/dev/tty1`) is displayed
+# by default the first virtual terminal (/dev/vcsa1 == /dev/tty1) is displayed
 sudo ./papertty.py --model epd2in13 terminal
 
 # set font size to 16, update every 10 seconds, set terminal rows/cols to 10x20
