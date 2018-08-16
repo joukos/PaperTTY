@@ -13,7 +13,7 @@
 
 _WHITE=255
 _BLACK=0
-defaultfont = "Andale_Mono.ttf"
+defaultfont = "tom-thumb.pil"
 
 # for command line usage
 import click
