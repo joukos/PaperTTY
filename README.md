@@ -67,7 +67,7 @@ You'll need Waveshare's demo code package for your display. [Here](https://www.w
 
 You can use TrueType fonts or bitmap fonts, but the bitmap fonts need to be in the right format. With bitmap fonts the `--size` option is ignored.
 
-Included as default is a very small bitmap font called [Tom Thumb](https://robey.lag.net/2010/01/23/tiny-monospace-font.html), it is fairly readable for its tiny size. Thanks go to Brian Swetland and Robey Pointer for their work on the font and for releasing it under [CC0](https://creativecommons.org/publicdomain/zero/1.0/legalcode). There are even smaller "readable" [fonts](https://github.com/Michaelangel007/nanofont3x4) around but they take a bit of effort to use here.
+Included as default is a very small bitmap font called [Tom Thumb](https://robey.lag.net/2010/01/23/tiny-monospace-font.html), it is fairly readable for its tiny size and fits 20 rows with 62 columns on the 2.13". Thanks go to Brian Swetland and Robey Pointer for their work on the font and for releasing it under [CC0](https://creativecommons.org/publicdomain/zero/1.0/legalcode). There are even smaller "readable" [fonts](https://github.com/Michaelangel007/nanofont3x4) around but they take a bit of effort to use here.
 
 Python imaging library includes a utility called `pilfont`, you can use this to convert a BDF/PCF font file into `.pil` (I didn't have luck with some fonts - remember to use the `pilfont` version that's on your Pi):
 
