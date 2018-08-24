@@ -4,12 +4,58 @@
 
 This is an experimental command-line driven Python module to render the contents of a Linux virtual terminal (`/dev/tty[1-63]`) **or standard input** onto a [Waveshare](https://www.waveshare.com/) e-Paper display.
 
-*Note: I just finished this and probably forgot something, so 'caveat utilitor'.*
+*Note: Testing has been minimal and I probably forgot something, so 'caveat utilitor'.*
 
 *Note: I am also not affiliated with Waveshare in any way.*
 
 #### *Updates*
 
+- **2018-08-24**
+  - **Major** overhaul
+
+    - **Please create an issue (or pull request) if things don't work**
+    - Converted code to Python 3 only
+    - Install by default into a virtualenv
+      - Can co-exist with the previous version
+    - Replace old PIL with Pillow
+    - **Bundled reorganized/modified display drivers to (*hopefully*) support more displays**
+      - Created class structure to reduce code duplication in the drivers (got rid of ~60%)
+        - Perhaps overkill and more complicated, but meh, I just couldn't bear the repetition and accomodating all the models would have been messy otherwise
+      - **Supported models (SPI)**
+        - **EPD 1.54" (monochrome) - [probably works, with partial refresh]**
+        - **EPD 1.54" B (black/white/red)**
+        - **EPD 1.54" C (black/white/yellow)**
+        - **EPD 2.13" (monochrome) - [TESTED, with partial refresh]** 
+        - **EPD 2.13" B (black/white/red)**
+        - **EPD 2.13" C (black/white/yellow)** - should work with `EPD2in13b`
+        - **EPD 2.7" (monochrome)**
+        - **EPD 2.7" B (black/white/red)**
+        - **EPD 2.9" (monochrome) - [probably works, with partial refresh]**
+        - **EPD 2.9" B (black/white/red)**
+        - **EPD 2.9" C (black/white/yellow)** - should work with `EPD2in9b`
+        - **EPD 4.2" (monochrome)**
+        - **EPD 4.2" B (black/white/red)**
+        - **EPD 4.2" C (black/white/yellow)** - should work with `EPD4in2b`
+        - **EPD 7.5" (monochrome)**
+        - **EPD 7.5" B (black/white/red)**
+        - **EPD 7.5" C (black/white/yellow)** - should work with `EPD7in5b`
+      - **Missing models**
+        - **EPD 2.13" D (monochrome, flexible)**
+        - **EPD 5.83" (monochrome)**
+        - **EPD 5.83" B (black/white/red)**
+        - **EPD 5.83" C (black/white/yellow)**
+      - **Special drivers**
+        - **Dummy - no-op driver**
+        - **Bitmap - output frames as bitmap files (for debugging)**
+      - *Note: PaperTTY doesn't use the red/yellow colors ... yet*
+      - See `drivers/README.md`
+    - Some CLI changes related to driver selection
+    - I learned that my particular unit has some flaw that means it doesn't do full refreshes properly (never has)
+
+      - ***Doh!***
+      - **I'll just assume it works as expected with other people's units**
+    - Added new video
+    - Heard that a partial refresh LUT for the 7.5" is nontrivial to do if at all possible, so best not to get your hopes up too much regarding those - there will probably be better panels available eventually
 - **2018-08-16**
   - Included a very tiny bitmap font, "Tom Thumb", to use as default
 - **2018-08-14**
@@ -18,23 +64,25 @@ This is an experimental command-line driven Python module to render the contents
   - After browsing the Waveshare Wiki a bit, it seems that the smaller models support partial refresh out of the box but the bigger ones need some (hopefully minor) modification, if I ever get one I'll look into it
     - My guess is that this code should work as-is on the **Black/White 1.54", 2.13" and 2.9"** models - no guarantees though
     - The **2.7", 4.2", 5.83", 7.5"** models have slightly different code and need LUT modification or some hacking to achieve partial refresh, and I'm not sure if it's feasible to get it to work with the color models at all
-    - Modifying the code to work with full refreshes should be pretty easy if you happen to own one of the bigger monochrome displays
+    - ~~Modifying the code to work with full refreshes should be pretty easy if you happen to own one of the bigger monochrome displays~~
+      - *This is now done, and may work with color ones as well (2018-08-24)*
 
 #### Some features
 
 - Designed to be used with a **Raspberry Pi** and Raspbian.
 - It should enable you to run interactive console programs (`vim`, `tmux`, `irssi`, `nethack` ...) and display whatever you want easily with scripts.
-- Especially with a small font, it is fast enough for interactive use but could be improved to be [even faster](http://benkrasnow.blogspot.com/2017/10/fast-partial-refresh-on-42-e-paper.html).
+- Especially with a small font, it is fast enough for interactive use but could be improved to be [even faster](http://benkrasnow.blogspot.com/2017/10/fast-partial-refresh-on-42-e-paper.html). Also, it's quite a bit snappier on the Raspberry Pi 3 than the Zero.
 - Only the changed region is updated on the display, so typing is faster than full screen scrolling.
 - The cursor is also drawn and the image updated as it moves.
-- Flicker-free
+- Flicker-free.
 - Allows changing the font, font size, orientation and some other parameters.
-- Supports TrueType and bitmap fonts (in PIL format)
+- Supports TrueType and bitmap fonts (in PIL format).
 - Bundled with a `systemd` service unit to start the service early at boot and gracefully stop it.
 
 **It isn't perfect and has only been tested with the monochrome 2.13" HAT, but it *might* work for other models too, and allows you to at least *try*.**
 
-- *This code is in the public domain and you run it **at your own risk.***
+- *The PaperTTY code is in the public domain and you run it **at your own risk.***
+- The driver code (in `drivers/`) is **GPL 3.0** licensed, because it is based on Waveshare's GPL code - you still run it **at your own risk.**
 
 ## Screenshots
 
@@ -46,22 +94,52 @@ This is an experimental command-line driven Python module to render the contents
 
 ![](pics/sunlight.jpg)
 
-**Action video**
+**Action video - terminal usage (Raspberry Pi Zero W)**
+
+Showcasing input feedback.
 
 [![Youtube Video](https://img.youtube.com/vi/mXBS4l3OvyE/0.jpg)](https://www.youtube.com/watch?v=mXBS4l3OvyE)
 
+**Action video 2 - cacafire (Raspberry Pi 3)**
+
+The RPi3 is noticeably faster - `cacafire` is 3x slower on the Zero. Typical terminal usage works pretty well.
+
+[![Youtube Video](https://img.youtube.com/vi/yWpT0xk8ufY/0.jpg)](https://www.youtube.com/watch?v=yWpT0xk8ufY)
+
 ## Installation
 
-All of the code was written on Raspbian Stretch and relies on system packages. These instructions assume you're going to run this on a Raspberry Pi, otherwise you're on your own. 
+All of the code was written for Raspbian Stretch and Python 3.5+. These instructions assume you're going to run this on a Raspberry Pi, otherwise you're on your own.
 
-You'll need Waveshare's demo code package for your display. [Here](https://www.waveshare.com/wiki/2.13inch_e-Paper_HAT#Working_with_Raspberry_Pi) is the page for the 2.13" display I have. If you have a different one, look for it in the list at the top of the page.
+The code includes a reimplementation/refactoring of the Waveshare [reference drivers](https://github.com/soonuse/epd-library-python) - unlike the rest of the code which is CC0, **the drivers have the GPL 3.0 license**, because that's what Waveshare used. Only the drivers in the linked repo have been included for now - there are more in the Waveshare wiki.
 
-1. **Follow the steps in Waveshare's wiki to get the official demo code working first**
-2. Copy the files `epdXinY.py` (filename depends on display model) and `epdif.py` to the same directory with `papertty.py`
-3. Install some Python 2 packages: `sudo apt install python-imaging python-click`
-    - You could also use a virtualenv
-4. Unless you're happy with the awesome default font, find a nice *monospaced* TrueType or bitmap font: Andale Mono (`sudo apt install ttf-mscorefonts-installer`) is pretty great for very small sizes and on the 2.13" (128x250 pixels) can fit 17 rows and 50 columns
-    - You *can* use a proportional font but the terminal will probably look horrible
+See the [driver page](drivers/) for details and the supported models.
+
+*The earlier, initial version of PaperTTY (tag: `v0.01`) did not have instructions for using virtualenv (though it would work) - you can still run it as before using the system packages and alongside this new version. Using the virtualenv means that PIL and Pillow can also coexist on the same system.*
+
+#### Requirements
+
+- Enable SPI (`sudo raspi-config`)
+  - `Interfacing Options -> SPI -> Yes`
+  - Reboot
+
+#### Steps
+
+1. **Clone the repo somewhere and enter the directory**
+   - `git clone https://github.com/joukos/PaperTTY.git`
+   - `cd PaperTTY`
+2. **Install virtualenv and libopenjp2**
+   - `sudo apt install virtualenvwrapper python3-virtualenv libopenjp2-7`
+3. **Source the wrapper to use `mkvirtualenv` (*you may want to add this to `~/.bashrc`*)**
+   - `source /usr/share/virtualenvwrapper/virtualenvwrapper.sh`
+4. **Create the Python 3 virtualenv and install packages in `requirements.txt`**
+   - `mkvirtualenv -p /usr/bin/python3 -r requirements.txt papertty`
+   - This will create `~/.virtualenvs/papertty` which contains the required environment
+5. **After creating the virtualenv, it should become active and you should see `(papertty)` on your prompt**
+   - You should now be able to run `sudo ./papertty list` to see the available drivers and start using the software
+6. **To (de)activate the virtualenv afterwards, run:**
+   -  `~/.virtualenvs/papertty/bin/activate` - activate the virtualenv
+      -  Or, `workon papertty` if you have sourced `virtualenvwrapper.sh`
+   -  `~/.virtualenvs/papertty/bin/deactivate` - deactivate the virtualenv
 
 ## Fonts
 
@@ -69,12 +147,16 @@ You can use TrueType fonts or bitmap fonts, but the bitmap fonts need to be in t
 
 Included as default is a very small bitmap font called [Tom Thumb](https://robey.lag.net/2010/01/23/tiny-monospace-font.html), it is fairly readable for its tiny size and fits 20 rows with 62 columns on the 2.13". Thanks go to Brian Swetland and Robey Pointer for their work on the font and for releasing it under [CC0](https://creativecommons.org/publicdomain/zero/1.0/legalcode). There are even smaller "readable" [fonts](https://github.com/Michaelangel007/nanofont3x4) around but they take a bit of effort to use here.
 
-Python imaging library includes a utility called `pilfont`, you can use this to convert a BDF/PCF font file into `.pil` (I didn't have luck with some fonts - remember to use the `pilfont` version that's on your Pi):
+Unless you're happy with the awesome default font, find a nice *monospaced* TrueType or bitmap font: Andale Mono (`sudo apt install ttf-mscorefonts-installer`) is pretty great for very small sizes and on the 2.13" (128x250 pixels) can fit 17 rows and 50 columns
+
+- You *can* use a proportional font but the terminal will probably look horrible
+
+Pillow includes a utility called `pilfont.py`, you can use this to convert a BDF/PCF font file into a `.pil` and a `.pbm` (I didn't have luck with some fonts - remember to use the `pilfont.py` version that's on your Pi):
 
 ```
 # convert Terminus 
 gunzip -c /usr/share/fonts/X11/misc/ter-u12b_unicode.pcf.gz > terminus-12.pcf
-pilfont terminus-12.pcf
+pilfont.py terminus-12.pcf
 # you should get terminus-12.pil that you can pass with the --font option
 ```
 
@@ -84,34 +166,50 @@ All font options expect a path to the font file - the system font directories ar
 
 ## Usage
 
-Run `sudo ./papertty.py` to get help.
+**Remember to activate the virtualenv**, then run `sudo ./papertty.py` to get help.
 
 - You'll want to `sudo` unless you've set it up so that SPI works without and you've given read access to `/dev/vcsa*`
 
-To do anything, you'll need to tell the script which model you're using - in my case this would be **`epd2in13`** and therefore I should also have `epd2in13.py` in the current directory.
-
-Use the top-level option **`--model`** to set the model.
+To do anything, you'll need to tell the script which model you're using - in my case this would be **`epd2in13`**. Use the top-level option **`--driver`** to set the desired driver.
 
 Append `--help` with the subcommands to get help with their parameters.
 
 You can just edit `papertty.py` to your liking - the code is very simple and commented.
 
-**Scrub display**
+**Top-level options**
 
-If you're left with "burn-in" or the display doesn't seem to work properly, this usually helps (may even need to run it twice sometimes if the display is not in a steady state).
+| Option          | Description                                              | Default      |
+| --------------- | -------------------------------------------------------- | ------------ |
+| `--driver NAME` | Select driver to use - **required**                      | *no default* |
+| `--nopartial`   | Disable partial refresh even if the display supported it | disabled     |
+
+### Commands
+
+#### `list` - List display drivers
+
+```sh
+# Example
+sudo ./papertty.py list
+```
+
+#### `scrub` - Scrub display
+
+*This command mostly makes sense with the partial refresh models, although you can run it with full refresh too - it's just going to take a pretty long time to run. I needed this because my own unit can't handle a full refresh so it was the only way to clear the screen properly!*
+
+If you're left with "burn-in" or the display doesn't seem to work properly, this usually helps to even it out (may even need to run it twice sometimes if the display is not in a steady state).
 
 This will slowly fill the screen with bands of black, then white.
 
 Option | Description | Default
 ---    | --- | ---
-`--size N` | Chunk width (pixels) to fill with (not all values will work) | `16` 
+`--size N` | Chunk width (pixels) to fill with (valid values: `8-32`) | `16` 
 
 ```sh
 # Example
-sudo ./papertty.py --model epd2in13 scrub
+sudo ./papertty.py --driver epd2in13 scrub
 ```
 
-**Render standard input**
+#### `stdin` - Render standard input
 
 Render `stdin` on the display, simple as that. Leaves the image on the display until something else overwrites it. Very useful for showing script output or just about anything that updates irregularly.
 
@@ -127,14 +225,16 @@ Option | Description | Default
 
 ```sh
 # Example
-cowsay "Hello World" | sudo ./papertty.py --model epd2in13 stdin --nofold
+cowsay "Hello World" | sudo ./papertty.py --driver epd2in13 stdin --nofold
 ```
 
-**Render a virtual terminal**
+#### `terminal` - Render a virtual terminal
 
 The most prominent feature.
 
-This requires read permission to the virtual console device (`/dev/vcsa[1-63]`) and optionally write permission to the associated terminal device (`/dev/tty[1-63]`) if you want to set the TTY size via `ioctl`s. 
+This requires read permission to the virtual console device (`/dev/vcsa[1-63]`) and optionally write permission to the associated terminal device (`/dev/tty[1-63]`) if you want to set the TTY size via `ioctl`s.
+
+If you're going to use `terminal` with a display that doesn't support partial refresh, you probably want to set `--sleep` a bit larger than the default, such as a few seconds, unless you enjoy blinking.
 
 **The process handles two signals:**
 
@@ -168,14 +268,14 @@ Option | Description | Default
 # Examples
 
 # by default the first virtual terminal (/dev/vcsa1 == /dev/tty1) is displayed
-sudo ./papertty.py --model epd2in13 terminal
+sudo ./papertty.py --driver epd2in13 terminal
 
 # set font size to 16, update every 10 seconds, set terminal rows/cols to 10x20
-sudo ./papertty.py --model epd2in13 terminal --size 16 --sleep 10 --rows 10 --cols 20
+sudo ./papertty.py --driver epd2in13 terminal --size 16 --sleep 10 --rows 10 --cols 20
 
 # auto-fit terminal rows/cols for the font and use a bitmap font
 # (fitting may not work for very small fonts in portrait mode because of terminal restrictions)
-sudo ./papertty.py --model epd2in13 terminal --autofit --font myfont.pil
+sudo ./papertty.py --driver epd2in13 terminal --autofit --font myfont.pil
 ```
 
 ## How to use the terminal
@@ -222,6 +322,7 @@ You can kill the `papertty.py` process at any time - the stuff that runs in the 
 A simple `systemd` service unit file is included with the package, called `papertty.service`. It calls `start.sh` so that instead of editing the service file, you can edit the start script (and easily add whatever you need) without needing to run `systemctl daemon-reload` all the time.
 - You can simply put the command in the service file too, it's your choice
 - You probably want to set the script to be owned and writable by root only: `sudo chown root:root start.sh; sudo chmod 700 start.sh`
+- **Remember: to run the command under the virtualenv, you need to run the `python3` command from within the virtualenv's `bin` directory - this will ensure the environment is correct**
 
 To have the display turn on at boot, first **edit** the command you're happy with into `start.sh`:
 
@@ -229,7 +330,8 @@ To have the display turn on at boot, first **edit** the command you're happy wit
 # Remember: you probably want to set rows and cols here, because at reboot they're reset.
 # Also, when booting up after a power cycle the display may have some artifacts on it, so 
 # you may want to add --scrub to get a clean display (during boot it's a bit slower than usual)
-./papertty.py --model epd2in13 terminal --autofit --scrub
+VENV="/home/pi/.virtualenvs/papertty/bin/python3"
+${VENV} papertty.py --driver epd2in13 terminal --autofit
 ```
 
 Then make sure you have the right paths set in the service file:
@@ -320,16 +422,19 @@ The principle of operation is deceptively simple:
 Some notes:
 
 - Hardly tested, developed for a particular model - other models may not work or may need some code tweaking first
-  - If it sorta works but crashes or something else goes wrong and your display doesn't seem to work like usual anymore, **don't panic**, try the `scrub` command a couple of times first and wait for it to finish
+  - If it sorta works but crashes or something else goes wrong and your display doesn't seem to work like usual anymore, **don't panic**, try the `scrub` command a couple of times first and wait for it to finish - powering off and disconnecting the module completely ought to help as a last resort
+  - **Turns out my particular unit is actually *flawed* and doesn't do full refreshes properly so implementing it for other models has been mostly guesswork and wishful thinking**
+    - The `scrub` feature may be entirely unnecessary for normally functioning units
 - The code is surely littered with bugs and could use some refactoring
 - You need to figure out the parameters, font and encodings that work for *you*
+  - Importantly, Unicode support is lacking because the virtual terminal stores glyph indices in the buffer and the original value is lost in translation - my understanding is that there is currently development [being done](https://lkml.org/lkml/2018/6/26/1062) for the kernel to implement `/dev/vcsu*` which would rectify this, but it's not yet in the mainline kernel - option to use a pseudo TTY would be welcome in the mean time
 - Not much thought given to tricolor displays - you need to modify the part where attributes are skipped and implement it yourself (or donate such a display and I might take a look...)
 - Minimal error handling
 - You can't set an arbitrary size for the terminals with `ioctl`s - it would be better to use some pseudo terminal for this but then again, sometimes you specifically want `tty1` (imagine server crashing and having the kernel log imprinted on the e-ink)
 - Cursor placement is a bit obscure - this has to do with how the imaging library handles fonts and their metrics and it's not always very clear to me how they scale with the font... it works well enough though
 - The mirroring features were just an afterthought and don't work perfectly (probably simple to fix), also arbitrary rotation is missing (but easy to add)
-- The code was written for Python 2 - there are some forks and improvements on the Waveshare code around, but I wanted to make this work on the stock offering so didn't bother incorporating that stuff here
-  - Not that it needs much work to be compatible with Python 3
+- ~~The code was written for Python 2 - there are some forks and improvements on the Waveshare code around, but I wanted to make this work on the stock offering so didn't bother incorporating that stuff here~~
+  - *The code is now for Python 3*
 - While testing out some imaging library functions, I noticed that on another computer the library seemed to lack the `spacing` keyword argument for drawing text - this may be a problem in some environments but I didn't think much of it
 
 ## Conclusion
