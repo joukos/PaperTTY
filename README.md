@@ -12,7 +12,6 @@ This is an experimental command-line driven Python module to render the contents
 
 - **2018-08-24**
   - **Major** overhaul
-
     - **Please create an issue (or pull request) if things don't work**
     - Converted code to Python 3 only
     - Install by default into a virtualenv
