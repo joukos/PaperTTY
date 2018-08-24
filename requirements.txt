@@ -1,0 +1,4 @@
+Pillow
+RPi.GPIO
+spidev
+click
