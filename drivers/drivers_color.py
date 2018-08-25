@@ -222,3 +222,128 @@ class EPD7in5b(WaveshareColor):
         self.wait_until_idle()
         self.send_command(self.DEEP_SLEEP)
         self.send_data(0xa5)
+
+
+# This is a 'monochrome' display but surprisingly, the only difference to EPD7in5b is
+# setting a different resolution in init() (after TCON_RESOLUTION command),
+# thus, it is here and a subclass of EPD7in5b (for now).
+class EPD5in83(EPD7in5b):
+    """Waveshare 5.83" - monochrome"""
+
+    def __init__(self, **kwargs):
+        super().__init__()
+        self.name = '5.83" BW'
+        self.width = 600
+        self.height = 448
+
+    def init(self, **kwargs):
+        if self.epd_init() != 0:
+            return -1
+        self.reset()
+        self.send_command(self.POWER_SETTING)
+        self.send_data(0x37)
+        self.send_data(0x00)
+        self.send_command(self.PANEL_SETTING)
+        self.send_data(0xCF)
+        self.send_data(0x08)
+        self.send_command(self.BOOSTER_SOFT_START)
+        self.send_data(0xc7)
+        self.send_data(0xcc)
+        self.send_data(0x28)
+        self.send_command(self.POWER_ON)
+        self.wait_until_idle()
+        self.send_command(self.PLL_CONTROL)
+        self.send_data(0x3c)
+        self.send_command(self.TEMPERATURE_CALIBRATION)
+        self.send_data(0x00)
+        self.send_command(self.VCOM_AND_DATA_INTERVAL_SETTING)
+        self.send_data(0x77)
+        self.send_command(self.TCON_SETTING)
+        self.send_data(0x22)
+        self.send_command(self.TCON_RESOLUTION)
+        self.send_data(0x02)  # source 600
+        self.send_data(0x58)
+        self.send_data(0x01)  # gate 448
+        self.send_data(0xC0)
+        self.send_command(self.VCM_DC_SETTING)
+        self.send_data(0x1E)  # decide by LUT file
+        self.send_command(0xe5)  # FLASH MODE
+        self.send_data(0x03)
+
+
+class EPD5in83b(EPD5in83):
+    """Waveshare 5.83" B - black / white / red"""
+
+    def __init__(self, **kwargs):
+        super().__init__()
+        self.name = '5.83" B'
+
+    def init(self, **kwargs):
+        if self.epd_init() != 0:
+            return -1
+        self.reset()
+        self.send_command(self.POWER_SETTING)
+        self.send_data(0x37)
+        self.send_data(0x00)
+        self.send_command(self.PANEL_SETTING)
+        self.send_data(0xCF)
+        self.send_data(0x08)
+        self.send_command(self.BOOSTER_SOFT_START)
+        self.send_data(0xc7)
+        self.send_data(0xcc)
+        self.send_data(0x28)
+        self.send_command(self.POWER_ON)
+        self.wait_until_idle()
+        self.send_command(self.PLL_CONTROL)
+        self.send_data(0x3c)
+        self.send_command(self.TEMPERATURE_CALIBRATION)
+        self.send_data(0x00)
+        self.send_command(self.VCOM_AND_DATA_INTERVAL_SETTING)
+        self.send_data(0x77)
+        self.send_command(self.TCON_SETTING)
+        self.send_data(0x22)
+        self.send_command(self.TCON_RESOLUTION)
+        self.send_data(0x02)  # source 600
+        self.send_data(0x58)
+        self.send_data(0x01)  # gate 448
+        self.send_data(0xc0)
+        self.send_command(self.VCM_DC_SETTING)
+        self.send_data(0x20)  # decide by LUT file
+        self.send_command(0xe5)  # FLASH MODE
+        self.send_data(0x03)
+
+    def get_frame_buffer(self, image, reverse=True):
+        super().get_frame_buffer(image, reverse=reverse)
+
+    def display_frame(self, frame_buffer_black, *args):
+        frame_buffer_red = args[0] if args else None
+        self.send_command(self.DATA_START_TRANSMISSION_1)
+        for i in range(0, int(self.width / 8 * self.height)):
+            temp1 = frame_buffer_black[i]
+            temp2 = frame_buffer_red[i]
+            j = 0
+            while j < 8:
+                if (temp2 & 0x80) == 0x00:
+                    temp3 = 0x04  # red
+                elif (temp1 & 0x80) == 0x00:
+                    temp3 = 0x00  # black
+                else:
+                    temp3 = 0x03  # white
+
+                temp3 = (temp3 << 4) & 0xFF
+                temp1 = (temp1 << 1) & 0xFF
+                temp2 = (temp2 << 1) & 0xFF
+                j += 1
+                if (temp2 & 0x80) == 0x00:
+                    temp3 |= 0x04  # red
+                elif (temp1 & 0x80) == 0x00:
+                    temp3 |= 0x00  # black
+                else:
+                    temp3 |= 0x03  # white
+                temp1 = (temp1 << 1) & 0xFF
+                temp2 = (temp2 << 1) & 0xFF
+                self.send_data(temp3)
+                j += 1
+        self.send_command(self.DISPLAY_REFRESH)
+        self.delay_ms(100)
+        self.wait_until_idle()

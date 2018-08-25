@@ -10,6 +10,13 @@ This is an experimental command-line driven Python module to render the contents
 
 #### *Updates*
 
+- **2018-08-25**
+  - Added support for:
+    - **EPD 5.83" (monochrome)**
+    - **EPD 5.83" B (black/white/red)**
+    - **EPD 5.83" C (black/white/yellow)**
+  - Just one still missing:
+    - **EPD 2.13" D (monochrome, flexible)**
 - **2018-08-24**
   - **Major** overhaul
     - **Please create an issue (or pull request) if things don't work**
@@ -40,9 +47,9 @@ This is an experimental command-line driven Python module to render the contents
         - **EPD 7.5" C (black/white/yellow)** - should work with `EPD7in5b`
       - **Missing models**
         - **EPD 2.13" D (monochrome, flexible)**
-        - **EPD 5.83" (monochrome)**
-        - **EPD 5.83" B (black/white/red)**
-        - **EPD 5.83" C (black/white/yellow)**
+        - **~~EPD 5.83" (monochrome)~~**
+        - **~~EPD 5.83" B (black/white/red)~~**
+        - **~~EPD 5.83" C (black/white/yellow)~~**
       - **Special drivers**
         - **Dummy - no-op driver**
         - **Bitmap - output frames as bitmap files (for debugging)**

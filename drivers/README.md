@@ -23,14 +23,14 @@
   - **EPD 4.2" (monochrome)**
   - **EPD 4.2" B (black/white/red)**
   - **EPD 4.2" C (black/white/yellow)** - should work with `EPD4in2b`
+  - **EPD 5.83" (monochrome)**
+  - **EPD 5.83" B (black/white/red)**
+  - **EPD 5.83" C (black/white/yellow)**
   - **EPD 7.5" (monochrome)**
   - **EPD 7.5" B (black/white/red)**
   - **EPD 7.5" C (black/white/yellow)** - should work with `EPD7in5b`
 - **Missing models**
   - **EPD 2.13" D (monochrome, flexible)**
-  - **EPD 5.83" (monochrome)**
-  - **EPD 5.83" B (black/white/red)**
-  - **EPD 5.83" C (black/white/yellow)**
 - **Special drivers**
   - **Dummy - no-op driver**
   - **Bitmap - output frames as bitmap files (for debugging)**
@@ -131,6 +131,8 @@ The **B** and **C** variants differ by just their color (EPD 1.54" C is an excep
       - **`WaveshareColor`** - base class for variants that have an extra color (B/C variants)
         - **`EPD4in2b`** - **EPD 4.2" B (black/white/red)**
         - **`EPD7in5b`** - **EPD 7.5" B (black/white/red)**
+          - **`EPD5in83` - EPD 5.83" (monochrome)** - oddly enough, this "monochrome" display seems code-wise identical to `EPD7in5b` except that it initializes with a different resolution setting
+            - **`EPD5in83b` - EPD 5.83" B (black/white/red)**
         - **`WaveshareColorDraw`** - base class for color variants that implement "rotation aware" drawing methods
           - **`EPD1in54b`** - **EPD 1.54" B (black/white/red)**
           - **`EPD1in54c`** - **EPD 1.54" C (black/white/yellow)**

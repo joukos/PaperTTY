@@ -39,7 +39,7 @@ class DisplayDriver(ABC):
         self.partial_refresh = None
 
     @abstractmethod
-    def init(self, partial=None):
+    def init(self, **kwargs):
         """Initialize the display"""
         pass
 
@@ -73,7 +73,7 @@ class SpecialDriver(DisplayDriver):
         self.type = 'Dummy display driver'
 
     @abstractmethod
-    def init(self, partial=None):
+    def init(self, **kwargs):
         pass
 
     @abstractmethod
@@ -90,7 +90,7 @@ class Dummy(SpecialDriver):
     def __init__(self):
         super().__init__(name='No-op driver', width=self.default_width, height=self.default_height)
 
-    def init(self, partial=None):
+    def init(self, **kwargs):
         pass
 
     def draw(self, x, y, image):
@@ -107,7 +107,7 @@ class Bitmap(SpecialDriver):
         self.frame_buffer = None
         self.file_format = file_format
 
-    def init(self, partial=None):
+    def init(self, **kwargs):
         self.frame_buffer = Image.new('1', (self.width, self.height), 255)
         self.current_frame = 0
 
