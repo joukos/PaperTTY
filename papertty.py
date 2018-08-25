@@ -75,7 +75,11 @@ class PaperTTY:
         """Set a TTY (/dev/tty*) to a certain size. Must be a real TTY that support ioctls."""
         with open(tty, 'w') as tty:
             size = struct.pack("HHHH", int(rows), int(cols), 0, 0)
-            fcntl.ioctl(tty.fileno(), termios.TIOCSWINSZ, size)
+            try:
+                fcntl.ioctl(tty.fileno(), termios.TIOCSWINSZ, size)
+            except OSError:
+                print("TTY refused to resize (rows={}, cols={}), continuing anyway.".format(rows, cols))
+                print("Try setting a sane size manually.")
 
     @staticmethod
     def font_height(font, spacing=0):
