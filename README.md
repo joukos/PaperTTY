@@ -138,7 +138,7 @@ See the [driver page](drivers/) for details and the supported models.
 6. **To (de)activate the virtualenv afterwards, run:**
    -  `~/.virtualenvs/papertty/bin/activate` - activate the virtualenv
       -  Or, `workon papertty` if you have sourced `virtualenvwrapper.sh`
-   -  `~/.virtualenvs/papertty/bin/deactivate` - deactivate the virtualenv
+   -  `deactivate` - deactivate the virtualenv
 
 ## Fonts
 
