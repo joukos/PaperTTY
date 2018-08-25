@@ -190,26 +190,17 @@ class EPD7in5b(WaveshareColor):
         return buf
 
     def display_frame(self, frame_buffer, *args):
+        lookup = {0xC0: 0x03, 0x00: 0x00}
         self.send_command(self.DATA_START_TRANSMISSION_1)
         for i in range(0, int(self.width / 4 * self.height)):
             temp1 = frame_buffer[i]
             j = 0
             while j < 4:
-                if (temp1 & 0xC0) == 0xC0:
-                    temp2 = 0x03
-                elif (temp1 & 0xC0) == 0x00:
-                    temp2 = 0x00
-                else:
-                    temp2 = 0x04
+                temp2 = lookup.get(temp1 & 0xC0, 0x04)
                 temp2 = (temp2 << 4) & 0xFF
                 temp1 = (temp1 << 2) & 0xFF
                 j += 1
-                if (temp1 & 0xC0) == 0xC0:
-                    temp2 |= 0x03
-                elif (temp1 & 0xC0) == 0x00:
-                    temp2 |= 0x00
-                else:
-                    temp2 |= 0x04
+                temp2 |= lookup.get(temp1 & 0xC0, 0x04)
                 temp1 = (temp1 << 2) & 0xFF
                 self.send_data(temp2)
                 j += 1
