@@ -134,7 +134,7 @@ See the [driver page](drivers/) for details and the supported models.
    - `mkvirtualenv -p /usr/bin/python3 -r requirements.txt papertty`
    - This will create `~/.virtualenvs/papertty` which contains the required environment
 5. **After creating the virtualenv, it should become active and you should see `(papertty)` on your prompt**
-   - You should now be able to run `sudo ./papertty list` to see the available drivers and start using the software
+   - You should now be able to run `sudo ./papertty.py list` to see the available drivers and start using the software
 6. **To (de)activate the virtualenv afterwards, run:**
    -  `~/.virtualenvs/papertty/bin/activate` - activate the virtualenv
       -  Or, `workon papertty` if you have sourced `virtualenvwrapper.sh`
