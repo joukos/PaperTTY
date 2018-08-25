@@ -11,12 +11,17 @@ This is an experimental command-line driven Python module to render the contents
 #### *Updates*
 
 - **2018-08-25**
+  - Now **all** the SPI models listed in Waveshare's Wiki have a driver implemented - all it needs now is some testing to see if any of it works
+  - Fixed little issue with `--nopartial`: the screen was updated twice instead of once when enabled
+  - Added support for:
+    - **EPD 2.13" D (monochrome, flexible)**
+      - Note: the original driver for this model seemed to have been written by someone who didn't write the rest of the drivers - it appeared to be essentially broken and written while drunk, I tried to fix it but who knows if it'll work
   - Added support for:
     - **EPD 5.83" (monochrome)**
     - **EPD 5.83" B (black/white/red)**
     - **EPD 5.83" C (black/white/yellow)**
   - Just one still missing:
-    - **EPD 2.13" D (monochrome, flexible)**
+    - **~~EPD 2.13" D (monochrome, flexible)~~**
 - **2018-08-24**
   - **Major** overhaul
     - **Please create an issue (or pull request) if things don't work**

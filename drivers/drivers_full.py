@@ -27,7 +27,6 @@ class WaveshareFull(WaveshareEPD):
     DATA_STOP = 0x11
     DEEP_SLEEP = 0x07
     DISPLAY_REFRESH = 0x12
-    GET_STATUS = 0x71
     LOW_POWER_DETECTION = 0x51
     LUT_FOR_VCOM = 0x20
     PANEL_SETTING = 0x00

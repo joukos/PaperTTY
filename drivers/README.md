@@ -6,6 +6,8 @@
 
 ### Supported SPI displays
 
+All of the SPI displays listed on the Waveshare Wiki at the time of writing are supported.
+
 **Nothing is guaranteed - I don't own the hardware to test all of these. Use at your own risk!**
 
 - **Supported models (SPI)**
@@ -15,6 +17,7 @@
   - **EPD 2.13" (monochrome) - [TESTED, with partial refresh]** 
   - **EPD 2.13" B (black/white/red)**
   - **EPD 2.13" C (black/white/yellow)** - should work with `EPD2in13b`
+  - **EPD 2.13" D (monochrome, flexible)**
   - **EPD 2.7" (monochrome)**
   - **EPD 2.7" B (black/white/red)**
   - **EPD 2.9" (monochrome) - [probably works, with partial refresh]**
@@ -29,8 +32,6 @@
   - **EPD 7.5" (monochrome)**
   - **EPD 7.5" B (black/white/red)**
   - **EPD 7.5" C (black/white/yellow)** - should work with `EPD7in5b`
-- **Missing models**
-  - **EPD 2.13" D (monochrome, flexible)**
 - **Special drivers**
   - **Dummy - no-op driver**
   - **Bitmap - output frames as bitmap files (for debugging)**
@@ -123,6 +124,7 @@ The **B** and **C** variants differ by just their color (EPD 1.54" C is an excep
     - **`WavesharePartial`** - base class for variants that (officially) support partial refresh
       - **`EPD1in54`** - **EPD 1.54" (monochrome)**
       - **`EPD2in13`** - **EPD 2.13" (monochrome)**
+      - **`EPD2in13d` - EPD 2.13" D (monochrome, flexible)**
       - **`EPD2in9`** - **EPD 2.9" (monochrome)**
     - **`WaveshareFull`** - base class for variants that **don't** (officially) support partial refresh
       - **`EPD2in7`** - **EPD 2.7" (monochrome)**

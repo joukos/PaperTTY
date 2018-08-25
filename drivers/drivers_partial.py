@@ -196,19 +196,21 @@ class WavesharePartial(drivers_base.WaveshareEPD):
         """Replace a particular area on the display with an image"""
         self.set_frame_memory(image, x, y)
         self.display_frame()
-        self.set_frame_memory(image, x, y)
-        self.display_frame()
+        if self.partial_refresh:
+            # set the memory again if partial refresh LUT is used
+            self.set_frame_memory(image, x, y)
+            self.display_frame()
 
 
 class EPD1in54(WavesharePartial):
-    """Waveshare 1.54" monochrome"""
+    """Waveshare 1.54" - monochrome"""
 
     def __init__(self):
         super().__init__(name='1.54" BW', width=200, height=200)
 
 
 class EPD2in13(WavesharePartial):
-    """Waveshare 2.13" monochrome"""
+    """Waveshare 2.13" - monochrome"""
 
     lut_full_update = [
         0x22, 0x55, 0xAA, 0x55, 0xAA, 0x55, 0xAA, 0x11,
@@ -262,7 +264,290 @@ class EPD2in13(WavesharePartial):
 
 
 class EPD2in9(WavesharePartial):
-    """Waveshare 2.9" monochrome"""
+    """Waveshare 2.9" - monochrome"""
 
     def __init__(self):
         super().__init__(name='2.9" BW', width=128, height=296)
+
+
+class EPD2in13d(WavesharePartial):
+    """Waveshare 2.13" D - monochrome (flexible)"""
+
+    # Note: the original code for this display was pretty broken and seemed
+    # to have been written by some other person than the rest of the drivers.
+
+    def __init__(self):
+        super().__init__(name='2.13" D', width=104, height=212)
+
+    lut_vcomDC = [
+        0x00, 0x08, 0x00, 0x00, 0x00, 0x02,
+        0x60, 0x28, 0x28, 0x00, 0x00, 0x01,
+        0x00, 0x14, 0x00, 0x00, 0x00, 0x01,
+        0x00, 0x12, 0x12, 0x00, 0x00, 0x01,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00,
+    ]
+
+    lut_ww = [
+        0x40, 0x08, 0x00, 0x00, 0x00, 0x02,
+        0x90, 0x28, 0x28, 0x00, 0x00, 0x01,
+        0x40, 0x14, 0x00, 0x00, 0x00, 0x01,
+        0xA0, 0x12, 0x12, 0x00, 0x00, 0x01,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    ]
+
+    lut_bw = [
+        0x40, 0x17, 0x00, 0x00, 0x00, 0x02,
+        0x90, 0x0F, 0x0F, 0x00, 0x00, 0x03,
+        0x40, 0x0A, 0x01, 0x00, 0x00, 0x01,
+        0xA0, 0x0E, 0x0E, 0x00, 0x00, 0x02,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    ]
+
+    lut_wb = [
+        0x80, 0x08, 0x00, 0x00, 0x00, 0x02,
+        0x90, 0x28, 0x28, 0x00, 0x00, 0x01,
+        0x80, 0x14, 0x00, 0x00, 0x00, 0x01,
+        0x50, 0x12, 0x12, 0x00, 0x00, 0x01,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    ]
+
+    lut_bb = [
+        0x80, 0x08, 0x00, 0x00, 0x00, 0x02,
+        0x90, 0x28, 0x28, 0x00, 0x00, 0x01,
+        0x80, 0x14, 0x00, 0x00, 0x00, 0x01,
+        0x50, 0x12, 0x12, 0x00, 0x00, 0x01,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    ]
+
+    lut_vcom1 = [
+        0x00, 0x19, 0x01, 0x00, 0x00, 0x01,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00,
+    ]
+
+    lut_ww1 = [
+        0x00, 0x19, 0x01, 0x00, 0x00, 0x01,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    ]
+
+    lut_bw1 = [
+        0x80, 0x19, 0x01, 0x00, 0x00, 0x01,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    ]
+
+    lut_wb1 = [
+        0x40, 0x19, 0x01, 0x00, 0x00, 0x01,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    ]
+
+    lut_bb1 = [
+        0x00, 0x19, 0x01, 0x00, 0x00, 0x01,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    ]
+
+    def wait_until_idle(self):
+        """This particular model's code sends the GET_STATUS command while waiting - dunno why."""
+        while self.digital_read(self.BUSY_PIN) == 0:  # 0: idle, 1: busy
+            self.send_command(self.GET_STATUS)
+            self.delay_ms(100)
+
+    def init(self, **kwargs):
+        if self.epd_init() != 0:
+            return -1
+        self.reset()
+
+        self.send_command(0x01)  # POWER SETTING
+        self.send_data(0x03)
+        self.send_data(0x00)
+        self.send_data(0x2b)
+        self.send_data(0x2b)
+        self.send_data(0x03)
+
+        self.send_command(0x06)  # boost soft start
+        self.send_data(0x17)  # A
+        self.send_data(0x17)  # B
+        self.send_data(0x17)  # C
+
+        self.send_command(0x04)
+        self.wait_until_idle()
+
+        self.send_command(0x00)  # panel setting
+        self.send_data(0xbf)  # LUT from OTP,128x296
+        self.send_data(0x0d)  # VCOM to 0V fast
+
+        self.send_command(0x30)  # PLL setting
+        self.send_data(0x3a)  # 3a 100HZ   29 150Hz 39 200HZ	31 171HZ
+
+        self.send_command(0x61)  # resolution setting
+        self.send_data(self.width)
+        self.send_data((self.height >> 8) & 0xff)
+        self.send_data(self.height & 0xff)
+
+        self.send_command(0x82)  # vcom_DC setting
+        self.send_data(0x28)
+
+        # self.send_command(0X50)			#VCOM AND DATA INTERVAL SETTING
+        # self.send_data(0xb7)		#WBmode:VBDF 17|D7 VBDW 97 VBDB 57		WBRmode:VBDF F7 VBDW 77 VBDB 37  VBDR B7
+        return 0
+
+    def set_full_reg(self):
+        self.send_command(0x82)
+        self.send_data(0x00)
+        self.send_command(0X50)
+        self.send_data(0xb7)
+
+        self.send_command(0x20)  # vcom
+        for count in range(0, 44):
+            self.send_data(self.lut_vcomDC[count])
+        self.send_command(0x21)  # ww --
+        for count in range(0, 42):
+            self.send_data(self.lut_ww[count])
+        self.send_command(0x22)  # bw r
+        for count in range(0, 42):
+            self.send_data(self.lut_bw[count])
+        self.send_command(0x23)  # wb w
+        for count in range(0, 42):
+            self.send_data(self.lut_wb[count])
+        self.send_command(0x24)  # bb b
+        for count in range(0, 42):
+            self.send_data(self.lut_bb[count])
+
+    def set_part_reg(self):
+        self.send_command(0x82)
+        self.send_data(0x03)
+        self.send_command(0X50)
+        self.send_data(0x47)
+
+        self.send_command(0x20)  # vcom
+        for count in range(0, 44):
+            self.send_data(self.lut_vcom1[count])
+        self.send_command(0x21)  # ww --
+        for count in range(0, 42):
+            self.send_data(self.lut_ww1[count])
+        self.send_command(0x22)  # bw r
+        for count in range(0, 42):
+            self.send_data(self.lut_bw1[count])
+        self.send_command(0x23)  # wb w
+        for count in range(0, 42):
+            self.send_data(self.lut_wb1[count])
+        self.send_command(0x24)  # bb b
+        for count in range(0, 42):
+            self.send_data(self.lut_bb1[count])
+
+    def turn_on_display(self):
+        self.send_command(0x12)
+        self.delay_ms(10)
+        self.wait_until_idle()
+
+    def clear(self):
+        self.send_command(0x10)
+        for i in range(0, int(self.width * self.height / 8)):
+            self.send_data(0x00)
+        self.delay_ms(10)
+
+        self.send_command(0x13)
+        for i in range(0, int(self.width * self.height / 8)):
+            self.send_data(0xFF)
+        self.delay_ms(10)
+
+        self.set_full_reg()
+        self.turn_on_display()
+
+    def display_full(self, frame_buffer):
+        if not frame_buffer:
+            return
+
+        self.send_command(0x10)
+        for i in range(0, int(self.width * self.height / 8)):
+            self.send_data(0x00)
+        self.delay_ms(10)
+
+        self.send_command(0x13)
+        for i in range(0, int(self.width * self.height / 8)):
+            self.send_data(frame_buffer[i])
+        self.delay_ms(10)
+
+        self.set_full_reg()
+        self.turn_on_display()
+
+    def display_partial(self, frame_buffer, x_start, y_start, x_end, y_end):
+        if not frame_buffer:
+            return
+
+        self.set_part_reg()
+        self.send_command(0x91)
+        self.send_command(0x90)
+        self.send_data(x_start)
+        self.send_data(x_end - 1)
+
+        self.send_data(y_start / 256)
+        self.send_data(y_start % 256)
+        self.send_data(y_end / 256)
+        self.send_data(y_end % 256 - 1)
+        self.send_data(0x28)
+
+        self.send_command(0x10)
+        for i in range(0, int(self.width * self.height / 8)):
+            # print(frame_buffer[i],'%d','0x10')
+            self.send_data(frame_buffer[i])
+        self.delay_ms(10)
+
+        self.send_command(0x13)
+        for i in range(0, int(self.width * self.height / 8)):
+            # print(~frame_buffer[i],'%d','0x13')
+            self.send_data(~frame_buffer[i])
+        self.delay_ms(10)
+
+        # self.set_full_reg()
+        self.turn_on_display()
+
+    # after this, call epd.init() to awaken the module
+    def sleep(self):
+        self.send_command(0x50)
+        self.send_data(0xf7)
+        self.send_command(0x02)  # power off
+        self.send_command(0x07)  # deep sleep
+        self.send_data(0xA5)
+
+    def draw(self, x, y, image):
+        """Replace a particular area on the display with an image"""
+        if self.partial_refresh:
+            self.display_partial(self.get_frame_buffer(image), x, y, x + image.width, x + image.height)
+        else:
+            self.display_full(self.get_frame_buffer(image))

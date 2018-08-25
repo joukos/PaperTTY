@@ -127,7 +127,8 @@ class WaveshareEPD(DisplayDriver):
     - 7.5"  , 7.5" B
     """
 
-    # SPI methods
+    # Common commands
+    GET_STATUS = 0x71
 
     # These pins are common across all models
     RST_PIN = 17
@@ -135,8 +136,16 @@ class WaveshareEPD(DisplayDriver):
     CS_PIN = 8
     BUSY_PIN = 24
 
+    # Some models implement rotation in their code
+    ROTATE_0 = 0x00
+    ROTATE_90 = 0x01
+    ROTATE_180 = 0x02
+    ROTATE_270 = 0x03
+
     # SPI device, bus = 0, device = 0
     SPI = spidev.SpiDev(0, 0)
+
+    # SPI methods
 
     @staticmethod
     def epd_digital_write(pin, value):

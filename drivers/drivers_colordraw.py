@@ -32,10 +32,6 @@ class WaveshareColorDraw(WaveshareColor):
     DATA_START_TRANSMISSION_2 = 0x13
     PROGRAM_MODE = 0xA0
     READ_OTP_DATA = 0xA2
-    ROTATE_0 = 0x00
-    ROTATE_90 = 0x01
-    ROTATE_180 = 0x02
-    ROTATE_270 = 0x03
     VCOM_VALUE = 0x81
 
     def __init__(self, **kwargs):
