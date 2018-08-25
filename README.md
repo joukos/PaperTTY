@@ -245,10 +245,10 @@ If you're going to use `terminal` with a display that doesn't support partial re
 **The process handles two signals:**
 
 - **`SIGINT`** - stop and clear the screen (unless `--noclear` was given), same as pressing Ctrl-C
-    - `sudo kill -INT $(pidof -x papertty.py)`
+    - `sudo pkill -INT -f papertty.py`
     - By default, the `systemd` service unit attempts to stop the process using SIGINT
 - **`SIGUSR1`** - apply scrub and keep running
-    - `sudo kill -USR1 $(pidof -x papertty.py)`
+    - `sudo pkill -USR1 -f papertty.py`
 
 See details on how all of this works further down this document.
 
