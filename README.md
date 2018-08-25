@@ -2,7 +2,7 @@
 
 ![](pics/logo.jpg)
 
-This is an experimental command-line driven Python module to render the contents of a Linux virtual terminal (`/dev/tty[1-63]`) **or standard input** onto a [Waveshare](https://www.waveshare.com/) e-Paper display.
+This is an experimental command-line driven Python module to render the contents of a Linux virtual terminal (`/dev/tty[1-63]`) **or standard input** onto a [Waveshare](https://www.waveshare.com/) e-Paper display. See [list of supported displays](drivers/README.md).
 
 *Note: Testing has been minimal and I probably forgot something, so 'caveat utilitor'.*
 
