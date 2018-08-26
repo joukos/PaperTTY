@@ -162,7 +162,7 @@ Included as default is a very small bitmap font called [Tom Thumb](https://robey
 
 Another included font is the [nanofont](https://github.com/Michaelangel007/nanofont3x4), which is an extremely tiny (3x4 pixels) font and also released under CC0. Thanks go to the author, Michael Pohoreski. The conversion was done by generating the BMP, then transformed it with Pillow so that everything was on one line, then used [Fony](http://hukka.ncn.fi/?fony) to save a BDF and converted that to PIL.
 
-Why would you use such a microscopic font, I hear you ask? One good reason is that some programs refuse to start unless the terminal size is big enough, and using this font will allow you get things *theoretically* readable and run those programs even on the smaller displays. One example being **Dungeon Crawl Stone Soup** which wouldn't otherwise start on the 2.13" display (*hooray!*):
+Why would you use such a microscopic font, I hear you ask? One good reason is that some programs refuse to start unless the terminal size is big enough, and using this font will allow you to get things *theoretically* readable and run those programs even on the smaller displays. One example being **Dungeon Crawl Stone Soup** which wouldn't otherwise start on the 2.13" display (*hooray!*):
 
 ![](pics/dcss.jpg)
 
