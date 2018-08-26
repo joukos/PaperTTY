@@ -160,7 +160,7 @@ You can use TrueType fonts or bitmap fonts, but the bitmap fonts need to be in t
 
 Included as default is a very small bitmap font called [Tom Thumb](https://robey.lag.net/2010/01/23/tiny-monospace-font.html), it is fairly readable for its tiny size and fits 20 rows with 62 columns on the 2.13". Thanks go to Brian Swetland and Robey Pointer for their work on the font and for releasing it under [CC0](https://creativecommons.org/publicdomain/zero/1.0/legalcode).
 
-Another included font is the [nanofont](https://github.com/Michaelangel007/nanofont3x4), which is an extremely tiny (3x4 pixels) font. It was created by generating the BMP, then transformed it with Pillow so that everything was on one line, then used [Fony](http://hukka.ncn.fi/?fony) to save a BDF and converted that to PIL.
+Another included font is the [nanofont](https://github.com/Michaelangel007/nanofont3x4), which is an extremely tiny (3x4 pixels) font and also released under CC0. Thanks go to the author, Michael Pohoreski. The conversion was done by generating the BMP, then transformed it with Pillow so that everything was on one line, then used [Fony](http://hukka.ncn.fi/?fony) to save a BDF and converted that to PIL.
 
 Why would you use such a microscopic font, I hear you ask? One good reason is that some programs refuse to start unless the terminal size is big enough, and using this font will allow you get things *theoretically* readable and run those programs even on the smaller displays. One example being **Dungeon Crawl Stone Soup** which wouldn't otherwise start on the 2.13" display (*hooray!*):
 
