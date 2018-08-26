@@ -123,7 +123,7 @@ The RPi3 is noticeably faster - `cacafire` is 3x slower on the Zero. Typical ter
 
 All of the code was written for Raspbian Stretch and Python 3.5+. These instructions assume you're going to run this on a Raspberry Pi, otherwise you're on your own.
 
-The code includes a reimplementation/refactoring of the Waveshare [reference drivers](https://github.com/soonuse/epd-library-python) - unlike the rest of the code which is CC0, **the drivers have the GPL 3.0 license**, because that's what Waveshare used. Only the drivers in the linked repo have been included for now - there are more in the Waveshare wiki.
+The code includes a reimplementation/refactoring of the Waveshare [reference drivers](https://github.com/soonuse/epd-library-python) - unlike the rest of the code which is CC0, **the drivers have the GPL 3.0 license**, because that's what Waveshare used. The drivers for models that aren't in the repo have been acquired from their Wiki's demo code packages.
 
 See the [driver page](drivers/) for details and the supported models.
 
