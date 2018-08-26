@@ -170,7 +170,8 @@ class PaperTTY:
             except IOError:
                 self.error("Invalid font: '{}'".format(path))
         else:
-            self.error("The font '{}' could not be found, aborting.".format(path))
+            print("The font '{}' could not be found, using fallback font instead.".format(path))
+            font = ImageFont.load_default()
 
         return font
 
