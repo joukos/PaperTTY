@@ -10,6 +10,8 @@ This is an experimental command-line driven Python module to render the contents
 
 #### *Updates*
 
+- **2018-08-26**
+  - Added [nanofont](https://github.com/Michaelangel007/nanofont3x4) in PIL format
 - **2018-08-25**
   - Now **all** the SPI models listed in Waveshare's Wiki have a driver implemented - all it needs now is some testing to see if any of it works
   - Fixed little issue with `--nopartial`: the screen was updated twice instead of once when enabled
@@ -156,7 +158,15 @@ See the [driver page](drivers/) for details and the supported models.
 
 You can use TrueType fonts or bitmap fonts, but the bitmap fonts need to be in the right format. With bitmap fonts the `--size` option is ignored.
 
-Included as default is a very small bitmap font called [Tom Thumb](https://robey.lag.net/2010/01/23/tiny-monospace-font.html), it is fairly readable for its tiny size and fits 20 rows with 62 columns on the 2.13". Thanks go to Brian Swetland and Robey Pointer for their work on the font and for releasing it under [CC0](https://creativecommons.org/publicdomain/zero/1.0/legalcode). There are even smaller "readable" [fonts](https://github.com/Michaelangel007/nanofont3x4) around but they take a bit of effort to use here.
+Included as default is a very small bitmap font called [Tom Thumb](https://robey.lag.net/2010/01/23/tiny-monospace-font.html), it is fairly readable for its tiny size and fits 20 rows with 62 columns on the 2.13". Thanks go to Brian Swetland and Robey Pointer for their work on the font and for releasing it under [CC0](https://creativecommons.org/publicdomain/zero/1.0/legalcode).
+
+Another included font is the [nanofont](https://github.com/Michaelangel007/nanofont3x4), which is an extremely tiny (3x4 pixels) font. It was created by generating the BMP, then transformed it with Pillow so that everything was on one line, then used [Fony](http://hukka.ncn.fi/?fony) to save a BDF and converted that to PIL.
+
+Why would you use such a microscopic font, I hear you ask? One good reason is that some programs refuse to start unless the terminal size is big enough, and using this font will allow you get things *theoretically* readable and run those programs even on the smaller displays. One example being **Dungeon Crawl Stone Soup** which wouldn't otherwise start on the 2.13" display (*hooray!*):
+
+![](pics/dcss.jpg)
+
+Playing the game like this would be quite challenging, however...
 
 Unless you're happy with the awesome default font, find a nice *monospaced* TrueType or bitmap font: Andale Mono (`sudo apt install ttf-mscorefonts-installer`) is pretty great for very small sizes and on the 2.13" (128x250 pixels) can fit 17 rows and 50 columns
 
