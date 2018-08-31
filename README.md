@@ -10,6 +10,8 @@ This is an experimental command-line driven Python module to render the contents
 
 #### *Updates*
 
+- **2018-08-31**
+  - Installation instructions had an issue: running with `sudo` didn't respect the virtualenv - fixed
 - **2018-08-26**
   - Added [nanofont](https://github.com/Michaelangel007/nanofont3x4) in PIL format
 - **2018-08-25**
@@ -148,11 +150,18 @@ See the [driver page](drivers/) for details and the supported models.
    - `mkvirtualenv -p /usr/bin/python3 -r requirements.txt papertty`
    - This will create `~/.virtualenvs/papertty` which contains the required environment
 5. **After creating the virtualenv, it should become active and you should see `(papertty)` on your prompt**
-   - You should now be able to run `sudo ./papertty.py list` to see the available drivers and start using the software
-6. **To (de)activate the virtualenv afterwards, run:**
+   - **Note:** the software needs to be run with `sudo` in the typical case, *so you need to explicitly start the interpreter within the virtualenv - otherwise the program attempts to import system packages instead*
+   - **You should now be able to run `sudo ~/.virtualenvs/papertty/bin/python3 ./papertty.py list` to see the available drivers and start using the software**
+6. **Not really needed, but to (de)activate the virtualenv afterwards, run:**
    -  `~/.virtualenvs/papertty/bin/activate` - activate the virtualenv
       -  Or, `workon papertty` if you have sourced `virtualenvwrapper.sh`
    -  `deactivate` - deactivate the virtualenv
+
+#### Alternative install without virtualenv, using system packages
+
+- If you don't care to use the virtualenv, just install the requirements as system packages:
+  - `sudo apt install python3-rpi.gpio python3-spidev python3-pil python3-click`
+  - And run the program directly: `sudo ./papertty.py list`
 
 ## Fonts
 
