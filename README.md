@@ -35,7 +35,7 @@ This is an experimental command-line driven Python module to render the contents
     - Replace old PIL with Pillow
     - **Bundled reorganized/modified display drivers to (*hopefully*) support more displays**
       - Created class structure to reduce code duplication in the drivers (got rid of ~60%)
-        - Perhaps overkill and more complicated, but meh, I just couldn't bear the repetition and accomodating all the models would have been messy otherwise
+        - Perhaps overkill and more complicated, but meh, I just couldn't bear the repetition and accommodating all the models would have been messy otherwise
       - **Supported models (SPI)**
         - **EPD 1.54" (monochrome) - [probably works, with partial refresh]**
         - **EPD 1.54" B (black/white/red)**
