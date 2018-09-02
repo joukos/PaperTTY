@@ -212,6 +212,11 @@ You can just edit `papertty.py` to your liking - the code is very simple and com
 | --------------- | -------------------------------------------------------- | ------------ |
 | `--driver NAME` | Select driver to use - **required**                      | *no default* |
 | `--nopartial`   | Disable partial refresh even if the display supported it | disabled     |
+| `--encoding NAME` | Select encoding to use                                 | `utf-8`      |
+
+**Note:** The encoding settings are a bit questionable right now - encoding/decoding is done explicitly to have `ignore` on any errors, but I think this needs some more work as it's not an entirely trivial issue. If you feel like there's a big dum-dum in the code regarding these, a PR is *very appreciated*.
+
+**Note 2:** *To get scandinavian accents to show (`ä`,`ö` etc.), try `--encoding cp852`.*
 
 ### Commands
 

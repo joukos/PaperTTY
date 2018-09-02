@@ -50,8 +50,9 @@ class PaperTTY:
     fontsize = None
     white = None
     black = None
+    encoding = None
 
-    def __init__(self, driver, font=defaultfont, fontsize=defaultsize, partial=None):
+    def __init__(self, driver, font=defaultfont, fontsize=defaultsize, partial=None, encoding='utf-8'):
         """Create a PaperTTY with the chosen driver and settings"""
         self.driver = get_drivers()[driver]['class']()
         self.font = self.load_font(font, fontsize) if font else None
@@ -59,6 +60,7 @@ class PaperTTY:
         self.partial = partial
         self.white = self.driver.white
         self.black = self.driver.black
+        self.encoding = encoding
 
     def ready(self):
         """Check that the driver is loaded and initialized"""
@@ -198,7 +200,7 @@ class PaperTTY:
                               self.white)
             # create the Draw object and draw the text
             draw = ImageDraw.Draw(image)
-            draw.text((0, 0), text, font=self.font, fill=fill, spacing=spacing)
+            draw.text((0, 0), text.encode(self.encoding, errors='ignore'), font=self.font, fill=fill, spacing=spacing)
 
             # if we want a cursor, draw it - the most convoluted part
             if cursor:
@@ -278,8 +280,9 @@ def get_driver_list():
 @click.group()
 @click.option('--driver', default=None, help='Select display driver')
 @click.option('--nopartial', is_flag=True, default=False, help="Don't use partial updates even if display supports it")
+@click.option('--encoding', default='utf-8', help='Encoding to use for the buffer', show_default=True)
 @click.pass_context
-def cli(ctx, driver, nopartial):
+def cli(ctx, driver, nopartial, encoding):
     """Display stdin or TTY on a Waveshare e-Paper display"""
     if not driver:
         PaperTTY.error(
@@ -289,7 +292,7 @@ def cli(ctx, driver, nopartial):
         matched_drivers = [n for n in get_drivers() if n.lower() == driver.lower()]
         if not matched_drivers:
             PaperTTY.error('Invalid driver selection, choose from:\n{}'.format(get_driver_list()))
-        ctx.obj = Settings(driver=matched_drivers[0], partial=not nopartial)
+        ctx.obj = Settings(driver=matched_drivers[0], partial=not nopartial, encoding=encoding)
     pass
 
 
@@ -420,7 +423,7 @@ def terminal(settings, vcsa, font, fontsize, noclear, nocursor, sleep, ttyrows, 
                 char_under_cursor = buff[y * rows + x]
                 cursor = (x, y, char_under_cursor)
                 # add newlines per column count
-                buff = ''.join([r.decode() + '\n' for r in ptty.split(buff, cols)])
+                buff = ''.join([r.decode(ptty.encoding, 'ignore') + '\n' for r in ptty.split(buff, cols)])
                 # do something only if content has changed or cursor was moved
                 if buff != oldbuff or cursor != oldcursor:
                     # show new content
