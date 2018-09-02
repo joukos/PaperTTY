@@ -200,7 +200,7 @@ class PaperTTY:
                               self.white)
             # create the Draw object and draw the text
             draw = ImageDraw.Draw(image)
-            draw.text((0, 0), text.encode(self.encoding, errors='ignore'), font=self.font, fill=fill, spacing=spacing)
+            draw.text((0, 0), text, font=self.font, fill=fill, spacing=spacing)
 
             # if we want a cursor, draw it - the most convoluted part
             if cursor:
