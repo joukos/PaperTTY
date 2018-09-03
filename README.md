@@ -122,17 +122,19 @@ All font options expect a path to the font file - the system font directories ar
 
 ## Usage
 
-**Remember to activate the virtualenv**, then run `sudo ./papertty.py` to get help.
+**If you have the requirements installed in a virtualenv, remember to use its interpreter when running the program with sudo or being root:**  `sudo ~/.virtualenvs/papertty/bin/python3 ./papertty.py` 
 
 - You'll want to `sudo` unless you've set it up so that SPI works without and you've given read access to `/dev/vcsa*`
 
-To do anything, you'll need to tell the script which model you're using - in my case this would be **`epd2in13`**. Use the top-level option **`--driver`** to set the desired driver.
+To do anything useful, you'll need to tell the script which model you're using - in my case this would be **`epd2in13`**. Use the top-level option **`--driver`** to set the desired driver.
 
 Append `--help` with the subcommands to get help with their parameters.
 
 You can just edit `papertty.py` to your liking - the code is very simple and commented.
 
 **Top-level options**
+
+These should come before the subcommands and they control general settings.
 
 | Option          | Description                                              | Default      |
 | --------------- | -------------------------------------------------------- | ------------ |
