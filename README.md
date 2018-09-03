@@ -4,9 +4,9 @@
 
 This is an experimental command-line driven Python module to render the contents of a Linux virtual terminal (`/dev/tty[1-63]`) **or standard input** onto a [Waveshare](https://www.waveshare.com/) e-Paper display. See [list of supported displays](drivers/README.md).
 
-*Note: Testing has been minimal and I probably forgot something, so 'caveat utilitor'.*
+*Note: Testing has been minimal and I probably forgot something, so 'caveat utilitor'. I am also not affiliated with Waveshare in any way.*
 
-*Note: I am also not affiliated with Waveshare in any way.*
+*Note: relevant changes listed in the [changelog](CHANGELOG.md).*
 
 #### Some features
 
