@@ -1,0 +1,73 @@
+# Changelog
+
+- **2018-08-31**
+  - Installation instructions had an issue: running with `sudo` didn't respect the virtualenv - fixed
+- **2018-08-26**
+  - Added [nanofont](https://github.com/Michaelangel007/nanofont3x4) in PIL format
+- **2018-08-25**
+  - Now **all** the SPI models listed in Waveshare's Wiki have a driver implemented - all it needs now is some testing to see if any of it works
+  - Fixed little issue with `--nopartial`: the screen was updated twice instead of once when enabled
+  - Added support for:
+    - **EPD 2.13" D (monochrome, flexible)**
+      - Note: the original driver for this model seemed to have been written by someone who didn't write the rest of the drivers - it appeared to be essentially broken and written while drunk, I tried to fix it but who knows if it'll work
+  - Added support for:
+    - **EPD 5.83" (monochrome)**
+    - **EPD 5.83" B (black/white/red)**
+    - **EPD 5.83" C (black/white/yellow)**
+  - Just one still missing:
+    - **~~EPD 2.13" D (monochrome, flexible)~~**
+- **2018-08-24**
+  - **Major** overhaul
+    - **Please create an issue (or pull request) if things don't work**
+    - Converted code to Python 3 only
+    - Install by default into a virtualenv
+      - Can co-exist with the previous version
+    - Replace old PIL with Pillow
+    - **Bundled reorganized/modified display drivers to (*hopefully*) support more displays**
+      - Created class structure to reduce code duplication in the drivers (got rid of ~60%)
+        - Perhaps overkill and more complicated, but meh, I just couldn't bear the repetition and accommodating all the models would have been messy otherwise
+      - **Supported models (SPI)**
+        - **EPD 1.54" (monochrome) - [probably works, with partial refresh]**
+        - **EPD 1.54" B (black/white/red)**
+        - **EPD 1.54" C (black/white/yellow)**
+        - **EPD 2.13" (monochrome) - [TESTED, with partial refresh]** 
+        - **EPD 2.13" B (black/white/red)**
+        - **EPD 2.13" C (black/white/yellow)** - should work with `EPD2in13b`
+        - **EPD 2.7" (monochrome)**
+        - **EPD 2.7" B (black/white/red)**
+        - **EPD 2.9" (monochrome) - [probably works, with partial refresh]**
+        - **EPD 2.9" B (black/white/red)**
+        - **EPD 2.9" C (black/white/yellow)** - should work with `EPD2in9b`
+        - **EPD 4.2" (monochrome)**
+        - **EPD 4.2" B (black/white/red)**
+        - **EPD 4.2" C (black/white/yellow)** - should work with `EPD4in2b`
+        - **EPD 7.5" (monochrome)**
+        - **EPD 7.5" B (black/white/red)**
+        - **EPD 7.5" C (black/white/yellow)** - should work with `EPD7in5b`
+      - **Missing models**
+        - **EPD 2.13" D (monochrome, flexible)**
+        - **~~EPD 5.83" (monochrome)~~**
+        - **~~EPD 5.83" B (black/white/red)~~**
+        - **~~EPD 5.83" C (black/white/yellow)~~**
+      - **Special drivers**
+        - **Dummy - no-op driver**
+        - **Bitmap - output frames as bitmap files (for debugging)**
+      - *Note: PaperTTY doesn't use the red/yellow colors ... yet*
+      - See `drivers/README.md`
+    - Some CLI changes related to driver selection
+    - I learned that my particular unit has some flaw that means it doesn't do full refreshes properly (never has)
+
+      - ***Doh!***
+      - **I'll just assume it works as expected with other people's units**
+    - Added new video
+    - Heard that a partial refresh LUT for the 7.5" is nontrivial to do if at all possible, so best not to get your hopes up too much regarding those - there will probably be better panels available eventually
+- **2018-08-16**
+  - Included a very tiny bitmap font, "Tom Thumb", to use as default
+- **2018-08-14**
+  - Added support for PIL bitmap fonts (autodetected)
+- **2018-08-13**
+  - After browsing the Waveshare Wiki a bit, it seems that the smaller models support partial refresh out of the box but the bigger ones need some (hopefully minor) modification, if I ever get one I'll look into it
+    - My guess is that this code should work as-is on the **Black/White 1.54", 2.13" and 2.9"** models - no guarantees though
+    - The **2.7", 4.2", 5.83", 7.5"** models have slightly different code and need LUT modification or some hacking to achieve partial refresh, and I'm not sure if it's feasible to get it to work with the color models at all
+    - ~~Modifying the code to work with full refreshes should be pretty easy if you happen to own one of the bigger monochrome displays~~
+      - *This is now done, and may work with color ones as well (2018-08-24)*
