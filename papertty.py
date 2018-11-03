@@ -307,7 +307,7 @@ def list_drivers():
 @click.pass_obj
 def scrub(settings, size):
     """Slowly fill with black, then white"""
-    if size not in range(8, 32):
+    if size not in range(8, 32+1):
         PaperTTY.error("Invalid stripe size, must be 8-32")
     ptty = settings.get_init_tty()
     ptty.driver.scrub(fillsize=size)
