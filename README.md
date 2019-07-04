@@ -1,5 +1,15 @@
 # PaperTTY
 
+## WIP update
+
+So I finally had a bit of time to look at this again, and since I really wanted the VNC thing to happen...
+
+![](pics/vnc.jpg)
+
+Stay tuned...
+
+---
+
 ![](pics/logo.jpg)
 
 This is an experimental command-line driven Python module to render the contents of a Linux virtual terminal (`/dev/tty[1-63]`) **or standard input** onto a [Waveshare](https://www.waveshare.com/) e-Paper display. See [list of supported displays](drivers/README.md).
