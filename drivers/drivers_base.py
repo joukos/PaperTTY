@@ -16,9 +16,16 @@
 
 from abc import ABC, abstractmethod
 from PIL import Image
-import spidev
-import RPi.GPIO as GPIO
+
 import time
+
+# if rpi libs are not found, don't care - hope that we don't end up
+# using them
+try:
+    import spidev
+    import RPi.GPIO as GPIO
+except ImportError:
+    pass
 
 
 class DisplayDriver(ABC):
@@ -143,7 +150,6 @@ class WaveshareEPD(DisplayDriver):
     ROTATE_270 = 0x03
 
     # SPI device, bus = 0, device = 0
-    SPI = spidev.SpiDev(0, 0)
 
     # SPI methods
 
@@ -169,6 +175,7 @@ class WaveshareEPD(DisplayDriver):
         GPIO.setup(self.DC_PIN, GPIO.OUT)
         GPIO.setup(self.CS_PIN, GPIO.OUT)
         GPIO.setup(self.BUSY_PIN, GPIO.IN)
+        self.SPI = spidev.SpiDev(0, 0)
         self.SPI.max_speed_hz = 2000000
         self.SPI.mode = 0b00
         return 0
