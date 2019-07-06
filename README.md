@@ -1,14 +1,62 @@
 # PaperTTY
 
-## WIP update
+## VNC Update
 
-So I finally had a bit of time to look at this again, and since I really wanted the VNC thing to happen...
+So, it's been almost a year since last update and I've been very very busy.
+
+Since I'm going to be even *busier* for the next two years or so, and probably won't have much time to spend on this project, I wanted see if I could kludge this one last thing that I think is needed (and was referenced in https://github.com/joukos/PaperTTY/issues/23#issuecomment-435578128): a VNC client to PaperTTY.
+
+**I'm happy to announce that it works!** It's not the most elegant or beautiful thing, but now you can run a graphical desktop and any programs you wish on these epaper screens. It also solves many problems and complexities with text-only terminals, namely encoding/font issues and other quirks. I've tested it with the 4.2" and the 2.13" displays.
+
+The performance is pretty much the same as before, maybe a tad more image processing though, but the bottleneck is the display refresh anyway. All the complex stuff is done by [vncdotool](https://github.com/sibson/vncdotool) by Marc Sibson, since it was the most mature-seeming VNC library I could find that would work with Python 3 without extra work. It's also overkill for the job - all that's needed is to read the screen content periodically.
+
+The way this works is pretty simple: PaperTTY will connect to the VNC server, then just reads the screen content in a loop. If the image changes, the region containing the changes will be updated on the display. This is not actually very efficient and originally I planned to have it update the native VNC "dirty rectangles", but it was simpler to kludge it like this for a start, and it seems to work fine, so it's perhaps easier to make better now.
+
+Some benefits and features:
+- **Run all CLI *and* GUI programs**
+- Dithers colors so you can throw anything at it and hopefully it's legible on the display
+- About as fast as just using the terminal mode, but much less hassle (sort of)
+- Has options for rotating and inverting the colors
+- Rescales the VNC screen to fit the display (panning not implemented)
+- Simplistic, surely buggy and doesn't fix the other problems PaperTTY might have
+
+Quick start:
+- Install PaperTTY as usual
+   - `requirements.txt` is updated to include `vncdotool` - run `pip install -r requirements.txt` if you have an existing virtualenv
+- Start a VNC server somewhere (on the RPi for example)
+   - ie. `vncserver -g 250x128 :1`
+- Run PaperTTY as usual, but use the `vnc` subcommand (see `--help` for options)
+   - ie. `sudo ~/.virtualenvs/papertty/bin/python3 ./papertty.py --driver epd2in13 vnc --display 1 --password supAPass --sleep 0.1 --rotate 90`
+   - This would (by default) connect to `localhost`, display `1` (= port 5901), using the 2.13" driver, specifies the password, sleeps 0.1 seconds after each update, and rotates the screen by 90 degrees
+- If image looks wonky, make sure you have the right orientation for the VNC server (ie. `-g 300x400` vs. `-g 400x300`) and the correct `--rotation` value.
+
+I'll try to add more details later if I have time, but here's a couple of screenshots:
+
+**FreeCiv, downscaled from 800x600**
+
+![](pics/vnc_freeciv.jpg)
+
+**IRC and surfing action**
+
+![](pics/vnc_irc.jpg)
+
+**Freedoom, why not**
+
+![](pics/vnc_freedoom.jpg)
+
+**Early image of testing some X progs**
 
 ![](pics/vnc.jpg)
 
-Stay tuned...
+**And a YouTube video to showcase some partial refresh action**
 
----
+[![Youtube Video](https://img.youtube.com/vi/3o9Z2Ujdr9Q/0.jpg)](https://www.youtube.com/watch?v=3o9Z2Ujdr9Q)
+
+As always, create issues if there's problems. I'd also be very interested if someone with a 9.7" display gets this to work with partial refresh.
+
+*The rest of this page is not updated to cover the VNC feature yet.*
+
+--- 
 
 ![](pics/logo.jpg)
 

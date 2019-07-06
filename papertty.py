@@ -34,9 +34,11 @@ import time
 # for command line usage
 import click
 # for drawing
-from PIL import Image, ImageChops, ImageDraw, ImageFont
+from PIL import Image, ImageChops, ImageDraw, ImageFont, ImageOps
 # for tidy driver list
 from collections import OrderedDict
+# for VNC
+from vncdotool import api
 
 
 class PaperTTY:
@@ -191,6 +193,55 @@ class PaperTTY:
         ph = self.driver.height
         return int((pw if portrait else ph) / width), int((ph if portrait else pw) / height)
 
+    def showvnc(self, host, display, password=None, rotate=None, invert=False, sleep=1, full_interval=100):
+        with api.connect(':'.join([host, display]), password=password) as client:
+            previous_vnc_image = None
+            diff_bbox = None
+            # number of updates; when it's 0, do a full refresh
+            updates = 0
+            client.timeout = 10
+            while True:
+                try:
+                    client.refreshScreen()
+                except TimeoutError:
+                    print("Timeout to server {}:{}".format(host, display))
+                    client.disconnect()
+                    sys.exit(1)
+                new_vnc_image = client.screen
+                # apply rotation if any
+                if rotate:
+                    new_vnc_image = new_vnc_image.rotate(rotate, expand=True)
+                # apply invert
+                if invert:
+                    new_vnc_image = ImageOps.invert(new_vnc_image)
+                # rescale image if needed
+                if new_vnc_image.size != (self.driver.width, self.driver.height):
+                    new_vnc_image = new_vnc_image.resize((self.driver.width, self.driver.height))
+                # if at least two frames have been processed, get a bounding box of their difference region
+                if new_vnc_image and previous_vnc_image:
+                    diff_bbox = self.band(self.img_diff(new_vnc_image, previous_vnc_image))
+                # frames differ, so we should update the display
+                if diff_bbox:
+                    # increment update counter
+                    updates = (updates + 1) % full_interval
+                    # if partial update is supported and it's not time for a full refresh,
+                    # draw just the different region
+                    if updates > 0 and (self.driver.supports_partial and self.partial):
+                        print("partial ({}): {}".format(updates, diff_bbox))
+                        self.driver.draw(diff_bbox[0], diff_bbox[1], new_vnc_image.crop(diff_bbox))
+                    # if partial update is not possible or desired, do a full refresh
+                    else:
+                        print("full ({}): {}".format(updates, new_vnc_image.size))
+                        self.driver.draw(0, 0, new_vnc_image)
+                # otherwise this is the first frame, so run a full refresh to get things going
+                else:
+                    if updates == 0:
+                        updates = (updates + 1) % full_interval
+                        print("initial ({}): {}".format(updates, new_vnc_image.size))
+                        self.driver.draw(0, 0, new_vnc_image)
+                previous_vnc_image = new_vnc_image.copy()
+                time.sleep(float(sleep))
+
     def showtext(self, text, fill, cursor=None, portrait=False, flipx=False, flipy=False, oldimage=None, spacing=0):
         """Draw a string on the screen"""
         if self.ready():
@@ -307,7 +358,7 @@ def list_drivers():
 @click.pass_obj
 def scrub(settings, size):
     """Slowly fill with black, then white"""
-    if size not in range(8, 32+1):
+    if size not in range(8, 32 + 1):
         PaperTTY.error("Invalid stripe size, must be 8-32")
     ptty = settings.get_init_tty()
     ptty.driver.scrub(fillsize=size)
@@ -336,6 +387,20 @@ def stdin(settings, font, fontsize, width, portrait, nofold, spacing):
             max_width = int((ptty.driver.width - 8) / font_width) if portrait else int(ptty.driver.height / font_width)
             text = ptty.fold(text, width=max_width)
     ptty.showtext(text, fill=ptty.driver.black, portrait=portrait, spacing=spacing)
+
+
+@click.command()
+@click.option('--host', default="localhost", help="VNC host to connect to", show_default=True)
+@click.option('--display', default="0", help="VNC display to use (0 = port 5900)", show_default=True)
+@click.option('--password', default=None, help="VNC password")
+@click.option('--rotate', default=None, help="Rotate screen (90 / 180 / 270)")
+@click.option('--invert', default=False, is_flag=True, help="Invert colors")
+@click.option('--sleep', default=1, show_default=True, help="Refresh interval (s)", type=float)
+@click.option('--fullevery', default=50, show_default=True, help="# of partial updates between full updates")
+@click.pass_obj
+def vnc(settings, host, display, password, rotate, invert, sleep, fullevery):
+    ptty = settings.get_init_tty()
+    ptty.showvnc(host, display, password, int(rotate) if rotate else None, invert, sleep, fullevery)
 
 
 @click.command()
@@ -442,5 +507,6 @@ if __name__ == '__main__':
     cli.add_command(scrub)
     cli.add_command(terminal)
     cli.add_command(stdin)
+    cli.add_command(vnc)
     cli.add_command(list_drivers)
     cli()

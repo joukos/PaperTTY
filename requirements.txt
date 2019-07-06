@@ -2,3 +2,4 @@ Pillow
 RPi.GPIO
 spidev
 click
+vncdotool
