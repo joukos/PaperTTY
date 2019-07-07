@@ -43,7 +43,7 @@ So, you have your nice display and a RPi that you want to combine into a cool e-
 - ```sh
   # tmux window/pane #0
   sudo lightdm    # start lightdm if not already started
-  sudo export $(sudo x11vnc -findauth)	# find the X authority file (probably /var/run/lightdm/root/:0)
+  export $(sudo x11vnc -findauth)	# find the X authority file (probably /var/run/lightdm/root/:0)
   sudo x11vnc -usepw -display :0 -forever	# start x11vnc
   # tmux window/pane #1
   sudo /home/pi/.virtualenvs/papertty/bin/python papertty.py --driver epd2in13 scrub      # scrub for clear image
