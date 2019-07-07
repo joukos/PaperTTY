@@ -4,7 +4,7 @@
 
 So, it's been almost a year since last update and I've been very very busy.
 
-Since I'm going to be even *busier* for the next two years or so, and probably won't have much time to spend on this project, I wanted see if I could kludge this one last thing that I think is needed (and was referenced in https://github.com/joukos/PaperTTY/issues/23#issuecomment-435578128): a VNC client to PaperTTY.
+Since I'm going to be even *busier* for the next two years or so, and probably won't have much time to spend on this project, I wanted to see if I could kludge this one last thing that I think is needed (and was referenced in https://github.com/joukos/PaperTTY/issues/23#issuecomment-435578128): a VNC client to PaperTTY.
 
 **I'm happy to announce that it works!** It's not the most elegant or beautiful thing, but now you can run a graphical desktop and any programs you wish on these epaper screens. It also solves many problems and complexities with text-only terminals, namely encoding/font issues and other quirks. I've tested it with the 4.2" and the 2.13" displays.
 
@@ -12,7 +12,8 @@ The performance is pretty much the same as before, maybe a tad more image proces
 
 The way this works is pretty simple: PaperTTY will connect to the VNC server, then just reads the screen content in a loop. If the image changes, the region containing the changes will be updated on the display. This is not actually very efficient and originally I planned to have it update the native VNC "dirty rectangles", but it was simpler to kludge it like this for a start, and it seems to work fine, so it's perhaps easier to make better now.
 
-Some benefits and features:
+### Some benefits and features
+
 - **Run all CLI *and* GUI programs**
 - Dithers colors so you can throw anything at it and hopefully it's legible on the display
 - About as fast as just using the terminal mode, but much less hassle (sort of)
@@ -20,7 +21,8 @@ Some benefits and features:
 - Rescales the VNC screen to fit the display (panning not implemented)
 - Simplistic, surely buggy and doesn't fix the other problems PaperTTY might have
 
-Quick start:
+### Quick start
+
 - Install PaperTTY as usual
    - `requirements.txt` is updated to include `vncdotool` - run `pip install -r requirements.txt` if you have an existing virtualenv
 - Start a VNC server somewhere (on the RPi for example)
@@ -28,9 +30,34 @@ Quick start:
 - Run PaperTTY as usual, but use the `vnc` subcommand (see `--help` for options)
    - ie. `sudo ~/.virtualenvs/papertty/bin/python3 ./papertty.py --driver epd2in13 vnc --display 1 --password supAPass --sleep 0.1 --rotate 90`
    - This would (by default) connect to `localhost`, display `1` (= port 5901), using the 2.13" driver, specifies the password, sleeps 0.1 seconds after each update, and rotates the screen by 90 degrees
-- If image looks wonky, make sure you have the right orientation for the VNC server (ie. `-g 300x400` vs. `-g 400x300`) and the correct `--rotation` value.
+- If image looks wonky, make sure you have the right orientation for the VNC server (ie. `-g 300x400` vs. `-g 400x300`) and the correct `--rotate` value.
 
-I'll try to add more details later if I have time, but here's a couple of screenshots:
+### Standalone RPi with mouse and keyboard
+
+So, you have your nice display and a RPi that you want to combine into a cool e-ink laptop, using peripherals plugged into the RPi. There's currently no automation or service files for this purpose, but what you can try is this (for the 2.13"):
+
+- Install or enable a desktop environment / window manager, unless it already exists (ie. if you plug in the HDMI port, you should get a graphical session)
+- Install `x11vnc` on the RPi
+- Plug in keyboard and mouse
+- Start a `tmux` session on the RPi and run the following commands, in their own windows (to easily find out if something goes wrong)
+- ```sh
+  # tmux window/pane #0
+  sudo lightdm    # start lightdm if not already started
+  sudo export $(sudo x11vnc -findauth)	# find the X authority file (probably /var/run/lightdm/root/:0)
+  sudo x11vnc -usepw -display :0 -forever	# start x11vnc
+  # tmux window/pane #1
+  sudo /home/pi/.virtualenvs/papertty/bin/python papertty.py --driver epd2in13 scrub      # scrub for clear image
+  sudo /home/pi/.virtualenvs/papertty/bin/python papertty.py --driver epd2in13 vnc --display 0 --password supAPass --sleep 0.1 --rotate 90   # display the session
+  ```
+- If all went well, you should now be able to see the login screen (or whatever is in your display :0) and can interact with the GUI using mouse and keyboard plugged into the RPi, making it a cool standalone unit.
+
+**Here's a quick video showing this in action**
+
+[![YouTube Video](https://img.youtube.com/vi/Kpohs9iqUBk/0.jpg)](https://www.youtube.com/watch?v=Kpohs9iqUBk)
+
+The RPi Zero W is quite sluggish though and the default resolution was used here, so downscaling it to 2.13" makes it pretty unreadable even without the background images and other crud. It's a proof of concept anyway and just needs a bit of polish.
+
+I'll try to add more details later if I have time, but here's some more screenshots:
 
 **FreeCiv, downscaled from 800x600**
 
@@ -50,7 +77,7 @@ I'll try to add more details later if I have time, but here's a couple of screen
 
 **And a YouTube video to showcase some partial refresh action**
 
-[![Youtube Video](https://img.youtube.com/vi/3o9Z2Ujdr9Q/0.jpg)](https://www.youtube.com/watch?v=3o9Z2Ujdr9Q)
+[![YouTube Video](https://img.youtube.com/vi/3o9Z2Ujdr9Q/0.jpg)](https://www.youtube.com/watch?v=3o9Z2Ujdr9Q)
 
 As always, create issues if there's problems. I'd also be very interested if someone with a 9.7" display gets this to work with partial refresh.
 
