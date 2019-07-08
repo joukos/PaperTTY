@@ -26,11 +26,11 @@ The way this works is pretty simple: PaperTTY will connect to the VNC server, th
 - Install PaperTTY as usual
    - `requirements.txt` is updated to include `vncdotool` - run `pip install -r requirements.txt` if you have an existing virtualenv
 - Start a VNC server somewhere (on the RPi for example)
-   - ie. `vncserver -g 250x128 :1`
+   - ie. `vncserver -geometry 250x128 :1`
 - Run PaperTTY as usual, but use the `vnc` subcommand (see `--help` for options)
    - ie. `sudo ~/.virtualenvs/papertty/bin/python3 ./papertty.py --driver epd2in13 vnc --display 1 --password supAPass --sleep 0.1 --rotate 90`
    - This would (by default) connect to `localhost`, display `1` (= port 5901), using the 2.13" driver, specifies the password, sleeps 0.1 seconds after each update, and rotates the screen by 90 degrees
-- If image looks wonky, make sure you have the right orientation for the VNC server (ie. `-g 300x400` vs. `-g 400x300`) and the correct `--rotate` value.
+- If image looks wonky, make sure you have the right orientation for the VNC server (ie. `-geometry 300x400` vs. `-geometry 400x300`) and the correct `--rotate` value.
 
 ### Standalone RPi with mouse and keyboard
 
