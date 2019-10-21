@@ -16,6 +16,7 @@ import drivers.drivers_partial as drivers_partial
 import drivers.drivers_full as drivers_full
 import drivers.drivers_color as drivers_color
 import drivers.drivers_colordraw as drivers_colordraw
+import drivers.driver_it8951 as driver_it8951
 
 # for ioctl
 import fcntl
@@ -104,7 +105,7 @@ class PaperTTY:
     def band(bb):
         """Stretch a bounding box's X coordinates to be divisible by 8,
            otherwise weird artifacts occur as some bits are skipped."""
-        return (bb[0] & 0xF8, bb[1], (bb[2] + 8) & 0xF8, bb[3]) if bb else None
+        return (int(bb[0] / 8) * 8, bb[1], int((bb[2] + 7) / 8) * 8, bb[3]) if bb else None
 
     @staticmethod
     def split(s, n):
@@ -315,7 +316,7 @@ def get_drivers():
                   drivers_full.EPD2in7, drivers_full.EPD4in2, drivers_full.EPD7in5,
                   drivers_color.EPD4in2b, drivers_color.EPD7in5b, drivers_color.EPD5in83, drivers_color.EPD5in83b,
                   drivers_colordraw.EPD1in54b, drivers_colordraw.EPD1in54c, drivers_colordraw.EPD2in13b,
-                  drivers_colordraw.EPD2in7b, drivers_colordraw.EPD2in9b,
+                  drivers_colordraw.EPD2in7b, drivers_colordraw.EPD2in9b, driver_it8951.IT8951,
                   drivers_base.Dummy, drivers_base.Bitmap]
     for driver in driverlist:
         driverdict[driver.__name__] = {'desc': driver.__doc__, 'class': driver}
