@@ -66,7 +66,7 @@ class IT8951(DisplayDriver):
 
     def __init__(self):
         super().__init__()
-        self.name = 'IT8951'
+        self.name = "IT8951"
         self.supports_partial = True
 
     def delay_ms(self, delaytime):
@@ -105,7 +105,7 @@ class IT8951(DisplayDriver):
         self.wait_for_ready()
         self.spi_write([0x00, 0x00]) # Two bytes of dummy data.
         self.wait_for_ready()
-        result = array.array('B', self.spi_read(n))
+        result = array.array("B", self.spi_read(n))
         GPIO.output(self.CS_PIN, GPIO.HIGH)
         return result
 
@@ -160,10 +160,10 @@ class IT8951(DisplayDriver):
         self.write_data_half_word(vcom)
 
     def fixup_string(self, s):
-        result = ''
+        result = ""
         for i in range(0, len(s), 2):
-            result += '%c%c' % (s[i + 1], s[i])
-        null_index = result.find('\0')
+            result += "%c%c" % (s[i + 1], s[i])
+        null_index = result.find("\0")
         if null_index != -1:
             result = result[0:null_index]
         return result
@@ -229,7 +229,7 @@ class IT8951(DisplayDriver):
 
         # Initialize the display with a blank image.
         self.wait_for_ready()
-        image = Image.new('L', (self.width, self.height), 0x255)
+        image = Image.new("L", (self.width, self.height), 0x255)
         self.draw(0, 0, image, self.DISPLAY_UPDATE_MODE_INIT)
 
     def display_area(self, x, y, w, h, display_mode):
@@ -254,40 +254,56 @@ class IT8951(DisplayDriver):
         self.write_command(self.CMD_LOAD_IMAGE_AREA)
         self.write_data_half_word(
                 (self.LOAD_IMAGE_L_ENDIAN << 8) |
-                (self.BPP_8 << 4) |
+                (self.BPP_4 << 4) |
                 self.ROTATE_0)
         self.write_data_half_word(x)
         self.write_data_half_word(y)
         self.write_data_half_word(width)
         self.write_data_half_word(height)
 
-        # Convert the image to 8 bit / BW
-        if image.mode == 'L':
-            image_grey = image
+        self.write_data_bytes(self.pack_image(image))
+        self.write_command(self.CMD_LOAD_IMAGE_END);
+
+        if update_mode_override is not None:
+            update_mode = update_mode_override
+        elif image.mode == "1":
+            # Use a faster, non-flashy update mode for pure black and white
+            # images.
+            update_mode = self.DISPLAY_UPDATE_MODE_DU
         else:
-            image_grey = image.convert('L')
+            # Use a slower, flashy update mode for gray scale images.
+            update_mode = self.DISPLAY_UPDATE_MODE_GC16
+        # Blit the image to the display
+        self.display_area(x, y, width, height, update_mode)
+
+    def pack_image(self, image):
+        """Packs a PIL image for transfer over SPI to the driver board."""
+        # Convert the image to 8 bit / BW. Then converting to a smaller
+        # bits-per-pixel gray scale image is just a matter of chopping off the
+        # least significant bytes.
+        image_grey = image.convert("L")
         pixels = image_grey.load()
         frame_buffer = [
             pixels[x, y]
-            for y in range(height)
-            for x in range(width)
+            for y in range(image.height)
+            for x in range(image.width)
         ]
+
+        # For now, only 4 bit packing is supported. Theoretically we could
+        # achieve a transfer speed up by using 2 bit packing for black and white
+        # images. However, 2bpp doesn't seem to play well with the DU rendering
+        # mode.
+        packed_buffer = []
+        for i in range(0, len(frame_buffer), 2):
+            value = (frame_buffer[i] >> 4) & 0x0F
+            if i + 1 < len(frame_buffer):
+                value |= frame_buffer[i + 1] & 0xF0
+            packed_buffer += [value]
+
         # The driver board assumes all data is read in as 16bit ints. To match
         # the endianness every pair of bytes must be swapped.
-        for i in range(0, len(frame_buffer), 2):
-            frame_buffer[i], frame_buffer[i + 1] = (
-                    frame_buffer[i + 1], frame_buffer[i])
+        for i in range(0, len(packed_buffer), 2):
+            packed_buffer[i], packed_buffer[i + 1] = (
+                    packed_buffer[i + 1], packed_buffer[i])
 
-        # Write the image data from (x, y) to (x + width, y + height), left to
-        # right, top to bottom.
-        self.write_data_bytes(frame_buffer)
-
-        self.write_command(self.CMD_LOAD_IMAGE_END);
-
-        # Blit the image to the display
-        update_mode = self.DISPLAY_UPDATE_MODE_GC16
-        if image.mode == "1":
-            update_mode = self.DISPLAY_UPDATE_MODE_DU
-        if update_mode_override is not None:
-            update_mode = update_mode_override
-        self.display_area(x, y, width, height, update_mode)
+        return packed_buffer
