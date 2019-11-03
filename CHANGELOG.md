@@ -1,5 +1,9 @@
 # Changelog
 
+- **2019-11-03**
+  - Added IT8951 support
+- **2019-07-07**
+  - Added VNC / GUI support
 - **2018-08-31**
   - Installation instructions had an issue: running with `sudo` didn't respect the virtualenv - fixed
 - **2018-08-26**

@@ -32,6 +32,7 @@ All of the SPI displays listed on the Waveshare Wiki at the time of writing are 
   - **EPD 7.5" (monochrome)**
   - **EPD 7.5" B (black/white/red)**
   - **EPD 7.5" C (black/white/yellow)** - should work with `EPD7in5b`
+  - **Displays using the IT8951 controller (6", 7.8", 9.7", 10.3")**
 - **Special drivers**
   - **Dummy - no-op driver**
   - **Bitmap - output frames as bitmap files (for debugging)**
