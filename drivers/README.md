@@ -18,6 +18,7 @@ All of the SPI displays listed on the Waveshare Wiki at the time of writing are 
   - **EPD 2.13" B (black/white/red)**
   - **EPD 2.13" C (black/white/yellow)** - should work with `EPD2in13b`
   - **EPD 2.13" D (monochrome, flexible)**
+  - **EPD 2.13" v2 (only full refresh)**
   - **EPD 2.7" (monochrome)**
   - **EPD 2.7" B (black/white/red)**
   - **EPD 2.9" (monochrome) - [probably works, with partial refresh]**
