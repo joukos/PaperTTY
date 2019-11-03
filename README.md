@@ -2,9 +2,15 @@
 
 ## IT8951 Update *(2019-11-03)*
 
-Support for IT8951 based displays kindly provided by @fimad has been merged. This means that Waveshare 6", 7.8", 9.7" and 10.3" may work since they use this controller. At least the 6" display has been verified to work. A big thanks to everyone involved with the discussion and code contributions (https://github.com/joukos/PaperTTY/issues/25)!
+Support for IT8951 based displays kindly provided by @fimad has been merged. This means that Waveshare 6", 7.8", 9.7" and 10.3" may work since they use this controller. At least the 6" and 9.7" displays have been verified to work. A big thanks to everyone involved with the discussion and code contributions (https://github.com/joukos/PaperTTY/issues/25)!
 
 If you have one of these displays and want to test it, add your experiences to https://github.com/joukos/PaperTTY/issues/32.
+
+Here is a picture of the 9.7" in action (by @math85360):
+
+![](pics/vnc_97_inch_by_math85360.jpg)
+
+[YouTube video](https://www.youtube.com/watch?v=J5WbhSV2E_U)
 
 ## VNC Update *(2019-07-07)*
 
