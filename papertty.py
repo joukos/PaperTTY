@@ -312,7 +312,7 @@ def get_drivers():
     driverdict = {}
     driverlist = [drivers_partial.EPD1in54, drivers_partial.EPD2in13, drivers_partial.EPD2in13v2, drivers_partial.EPD2in9,
                   drivers_partial.EPD2in13d,
-                  drivers_full.EPD2in7, drivers_full.EPD4in2, drivers_full.EPD7in5,
+                  drivers_full.EPD2in7, drivers_full.EPD4in2, drivers_full.EPD7in5, drivers_full.EPD7in5v2,
                   drivers_color.EPD4in2b, drivers_color.EPD7in5b, drivers_color.EPD5in83, drivers_color.EPD5in83b,
                   drivers_colordraw.EPD1in54b, drivers_colordraw.EPD1in54c, drivers_colordraw.EPD2in13b,
                   drivers_colordraw.EPD2in7b, drivers_colordraw.EPD2in9b,
