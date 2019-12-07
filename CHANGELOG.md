@@ -1,5 +1,7 @@
 # Changelog
 
+- **2019-12-07**
+  - Added basic support for EPD7in5v2 (GDEW075T7)
 - **2019-11-03**
   - Added IT8951 support
 - **2019-07-07**

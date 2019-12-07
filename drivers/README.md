@@ -31,6 +31,7 @@ All of the SPI displays listed on the Waveshare Wiki at the time of writing are 
   - **EPD 5.83" B (black/white/red)**
   - **EPD 5.83" C (black/white/yellow)**
   - **EPD 7.5" (monochrome)**
+  - **EPD 7.5" (monochrome, GDEW075T7, only full refresh)**
   - **EPD 7.5" B (black/white/red)**
   - **EPD 7.5" C (black/white/yellow)** - should work with `EPD7in5b`
   - **Displays using the IT8951 controller (6", 7.8", 9.7", 10.3")**
