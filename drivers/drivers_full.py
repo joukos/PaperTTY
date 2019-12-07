@@ -542,3 +542,83 @@ class EPD7in5(WaveshareFull):
         self.wait_until_idle()
         self.send_command(self.DEEP_SLEEP)
         self.send_data(0xa5)
+
+class EPD7in5v2(WaveshareFull):
+    """WaveShare 7.5" GDEW075T7 - monochrome"""
+
+    DATA_START_TRANSMISSION_2 = 0x13
+    LUT_WHITE_TO_WHITE = 0x21
+    LUT_BLACK_TO_WHITE = 0x22
+    LUT_WHITE_TO_BLACK = 0x23
+    LUT_BLACK_TO_BLACK = 0x24
+    READ_VCOM_VALUE = 0x81
+    # REVISION = 0x70
+    # SPI_FLASH_CONTROL = 0x65
+    # TCON_RESOLUTION = 0x61
+    TEMPERATURE_CALIBRATION = 0x41 # Assuming TEMPERATURE_SENSOR_SELECTION
+    VCM_DC_SETTING = 0x82
+
+    def __init__(self):
+        super().__init__(name='7.5" v2 (GDEW075T7) BW', width=800, height=480)
+
+    def init(self, **kwargs):
+        if self.epd_init() != 0:
+            return -1
+        self.reset()
+
+        self.send_command(self.POWER_SETTING)
+        self.send_data(0x07) # VDS_EN, VDG_EN
+        self.send_data(0x07) # VCOM_HV, VGHL_LV[1], VGHL_LV[0]
+        self.send_data(0x3f) # VDH
+        self.send_data(0x3f) # VDL
+        self.send_data(0xff) # VDHR
+
+        self.send_command(self.POWER_ON)
+        self.wait_until_idle()
+
+        self.send_command(self.PANEL_SETTING)
+        self.send_data(0x1f) # KW-3f   KWR-2F        BWROTP 0f       BWOTP 1f
+
+        self.send_command(0x15)
+        self.send_data(0x00)
+
+        self.send_command(self.VCOM_AND_DATA_INTERVAL_SETTING)
+        self.send_data(0x10)
+        self.send_data(0x07)
+
+        self.send_command(self.TCON_SETTING)
+        self.send_data(0x22)
+
+        print('Init finished.')
+
+    def display_frame(self, frame_buffer, *args):
+        if frame_buffer:
+            self.send_command(self.DATA_START_TRANSMISSION_1)
+            self.delay_ms(2)
+            for i in range(0, int(self.width * self.height / 8)):
+                self.send_data(0xFF)
+            self.delay_ms(2)
+            self.send_command(self.DATA_START_TRANSMISSION_2)
+            self.delay_ms(2)
+            for i in range(0, int(self.width * self.height / 8)):
+                self.send_data(~frame_buffer[i])
+            self.delay_ms(2)
+
+            self.send_command(self.DISPLAY_REFRESH)
+            self.delay_ms(100)
+            self.wait_until_idle()
+
+    def sleep(self):
+        '''
+        After this command is transmitted, the chip would enter the
+        deep-sleep mode to save power.
+        The deep sleep mode would return to standby by hardware reset.
+        The only one parameter is a check code, the command would be
+        executed if check code = 0xA5.
+        You can use Epd::Reset() to awaken or Epd::Init() to initialize
+        '''
+
+        self.send_command(self.POWER_OFF)
+        self.wait_until_idle()
+        self.send_command(self.DEEP_SLEEP)
+        self.send_data(0xA5)
