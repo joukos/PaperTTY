@@ -762,24 +762,24 @@ class EPD4in2(WavesharePartial):
     ############### implemented differently in the c file...
 
     def reset(self):
-        self.digital_write(self.RST_PIN, 1)
+        self.digital_write(self.RST_PIN, 0x01)
         self.delay_ms(200)
-        self.digital_write(self.RST_PIN, 0)
+        self.digital_write(self.RST_PIN, 0x00)
         self.delay_ms(200)
-        self.digital_write(self.RST_PIN, 1)
+        self.digital_write(self.RST_PIN, 0x01)
         self.delay_ms(200)
 
     def send_command(self, command):
-        self.digital_write(self.DC_PIN, 0)
-        self.digital_write(self.CS_PIN, 0)
+        self.digital_write(self.DC_PIN, 0x00)
+        self.digital_write(self.CS_PIN, 0x00)
         self.spi_transfer([command])
-        self.digital_write(self.CS_PIN, 1)
+        self.digital_write(self.CS_PIN, 0x01)
 
     def send_data(self, data):
-        self.digital_write(self.DC_PIN, 1)
-        self.digital_write(self.CS_PIN, 0)
+        self.digital_write(self.DC_PIN, 0x01)
+        self.digital_write(self.CS_PIN, 0x00)
         self.spi_transfer([data])
-        self.digital_write(self.CS_PIN, 1)
+        self.digital_write(self.CS_PIN, 0x01)
 
     def wait_until_idle(self):
         self.send_command(0x71)
@@ -929,6 +929,12 @@ class EPD4in2(WavesharePartial):
 
         self.send_command(0X50)			#VCOM AND DATA INTERVAL SETTING
         self.send_data(0x97)		#WBmode:VBDF 17|D7 VBDW 97 VBDB 57		WBRmode:VBDF F7 VBDW 77 VBDB 37  VBDR B7
+
+    def init(self, partial=True):
+        self.partial_refresh = partial
+        if self.epd_init() != 0:
+            return -1
+        self.init_full()
 
     def clear(self):
         width = int(self.width // 8 if self.width % 8 == 0 else self.width % 8 + 1)
@@ -1110,6 +1116,25 @@ class EPD4in2(WavesharePartial):
         self.wait_until_idle()
         self.send_command(0x07) # deep sleep
         self.send_data(0xa5)
+
+    # the implementation in super() is probably buggy!!!
+    def get_frame_buffer(self, image):
+        buf = [0x00] * int(self.width * self.height / 8)
+        # Set buffer to value of Python Imaging Library image.
+        # Image must be in mode 1.
+        image_monocolor = image.convert('1')
+        imwidth, imheight = image_monocolor.size
+        # if imwidth != self.width or imheight != self.height:
+        #     raise ValueError('Image must be same dimensions as display \
+        #         ({0}x{1}).'.format(self.width, self.height))
+
+        pixels = image_monocolor.load()
+        for y in range(imheight):
+            for x in range(imwidth):
+                # Set the bits for the column of pixels at the current position.
+                if pixels[x, y] != 0:
+                    buf[int((x + y * self.width) / 8)] |= 0x80 >> (x % 8)
+        return buf
 
     def draw(self, x, y, image):
         """Replace a particular area on the display with an image"""
