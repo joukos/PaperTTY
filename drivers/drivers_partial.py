@@ -888,12 +888,13 @@ class EPD4in2(WavesharePartial):
         self.send_command(0x82)  # vcom_DC setting
         self.send_data(0x28)
 
-        self.send_command(0X50)			#VCOM AND DATA INTERVAL SETTING
-        self.send_data(0x97)		#WBmode:VBDF 17|D7 VBDW 97 VBDB 57		WBRmode:VBDF F7 VBDW 77 VBDB 37  VBDR B7
+        self.send_command(0X50)			# VCOM AND DATA INTERVAL SETTING
+        self.send_data(0x97) # WBmode:VBDF 17|D7 VBDW 97 VBDB 57		WBRmode:VBDF F7 VBDW 77 VBDB 37  VBDR B7
 
         self.full_set_lut()
 
     def init_gray(self):
+        #### NOTE: This code is currently not being called.
         self.reset()
 
         self.send_command(0x01)  # POWER SETTING
@@ -1015,6 +1016,7 @@ class EPD4in2(WavesharePartial):
         self.turn_on_display()
 
     def display_gray(self, frame_buffer):
+        #### NOTE: This code is currently not being called.
         #### this is what the original source code says:
         # /****Color display description****
         #       white  gray1  gray2  black
@@ -1112,6 +1114,8 @@ class EPD4in2(WavesharePartial):
     def draw(self, x, y, image):
         """Replace a particular area on the display with an image"""
         if self.partial_refresh:
-            self.display_partial(self.get_frame_buffer(image), x, y, x + image.width, x + image.height)
+            self.display_partial(self.get_frame_buffer(image),
+                                 x, y,
+                                 x + image.width, x + image.height)
         else:
             self.display_full(self.get_frame_buffer(image))
