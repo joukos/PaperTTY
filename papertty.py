@@ -441,7 +441,7 @@ def terminal(settings, vcsa, font, fontsize, noclear, nocursor, sleep, ttyrows, 
         print("Exiting (SIGINT)...")
         if not noclear:
             ptty.showtext(oldbuff, fill=ptty.white, **textargs)
-            sys.exit(0)
+        sys.exit(0)
 
     # toggle scrub flag when SIGUSR1 received
     def sigusr1_handler(sig, frame):
