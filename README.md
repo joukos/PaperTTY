@@ -1,5 +1,9 @@
 # PaperTTY
 
+## IT8951 Optimization
+
+An optimization by @chi-lambda for the IT8951 driver was merged and may speed up the bit-packing even by up to **10x** for these displays, so the refresh rates should be significantly better now. Please create an issue if there are problems (the unoptimized version can be checked out with the tag `v0.03_unoptimized`).
+
 ## IT8951 Update *(2019-11-03)*
 
 Support for IT8951 based displays kindly provided by @fimad has been merged. This means that Waveshare 6", 7.8", 9.7" and 10.3" may work since they use this controller. At least the 6" and 9.7" displays have been verified to work. A big thanks to everyone involved with the discussion and code contributions (https://github.com/joukos/PaperTTY/issues/25)!
