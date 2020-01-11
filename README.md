@@ -1,6 +1,6 @@
 # PaperTTY
 
-## IT8951 Optimization
+## IT8951 Optimization *(2020-01-11)*
 
 An optimization by @chi-lambda for the IT8951 driver was merged and may speed up the bit-packing even by up to **10x** for these displays, so the refresh rates should be significantly better now. Please create an issue if there are problems (the unoptimized version can be checked out with the tag `v0.03_unoptimized`).
 
