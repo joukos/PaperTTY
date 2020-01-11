@@ -278,32 +278,27 @@ class IT8951(DisplayDriver):
 
     def pack_image(self, image):
         """Packs a PIL image for transfer over SPI to the driver board."""
-        # Convert the image to 8 bit / BW. Then converting to a smaller
-        # bits-per-pixel gray scale image is just a matter of chopping off the
-        # least significant bytes.
-        image_grey = image.convert("L")
-        pixels = image_grey.load()
-        frame_buffer = [
-            pixels[x, y]
-            for y in range(image.height)
-            for x in range(image.width)
-        ]
+        frame_buffer = list(image.getdata())
 
+        packed_buffer = [0] * ((len(frame_buffer) + 1) // 2)
         # For now, only 4 bit packing is supported. Theoretically we could
         # achieve a transfer speed up by using 2 bit packing for black and white
         # images. However, 2bpp doesn't seem to play well with the DU rendering
         # mode.
-        packed_buffer = []
-        for i in range(0, len(frame_buffer), 2):
-            value = (frame_buffer[i] >> 4) & 0x0F
-            if i + 1 < len(frame_buffer):
-                value |= frame_buffer[i + 1] & 0xF0
-            packed_buffer += [value]
-
         # The driver board assumes all data is read in as 16bit ints. To match
         # the endianness every pair of bytes must be swapped.
-        for i in range(0, len(packed_buffer), 2):
-            packed_buffer[i], packed_buffer[i + 1] = (
-                    packed_buffer[i + 1], packed_buffer[i])
+        for i in range(0, len(frame_buffer), 4):
+            if frame_buffer[i] and frame_buffer[i + 1]:
+                packed_buffer[i // 2 + 1] = 0xFF
+            elif frame_buffer[i]:
+                packed_buffer[i // 2 + 1] = 0x0F
+            elif frame_buffer[i + 1]:
+                packed_buffer[i // 2 + 1] = 0xF0
 
+            if frame_buffer[i + 2] and frame_buffer[i + 3]:
+                packed_buffer[i // 2] = 0xFF
+            elif frame_buffer[i + 2]:
+                packed_buffer[i // 2] = 0x0F
+            elif frame_buffer[i + 3]:
+                packed_buffer[i // 2] = 0xF0
         return packed_buffer
