@@ -291,7 +291,7 @@ class IT8951(DisplayDriver):
             # The driver board assumes all data is read in as 16bit ints. To match
             # the endianness every pair of bytes must be swapped.
             # The image is always padded to a multiple of 8, so we can safely go in steps of 4.
-            for i in range(0, length(frame_buffer), 4):
+            for i in range(0, len(frame_buffer), 4):
                 if frame_buffer[i + 2] and frame_buffer[i + 3]:
                     packed_buffer += [0xFF]
                 elif frame_buffer[i + 2]:
@@ -309,7 +309,6 @@ class IT8951(DisplayDriver):
         else:
             # old packing code for grayscale (VNC)
             image_grey = image.convert("L")
-            pixels = image_grey.load()
             frame_buffer = list(image_grey.getdata())
 
             # For now, only 4 bit packing is supported. Theoretically we could
