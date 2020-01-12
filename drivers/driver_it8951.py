@@ -298,6 +298,8 @@ class IT8951(DisplayDriver):
                     packed_buffer += [0x0F]
                 elif frame_buffer[i + 3]:
                     packed_buffer += [0xF0]
+                else:
+                    packed_buffer += [0]
 
                 if frame_buffer[i] and frame_buffer[i + 1]:
                     packed_buffer += [0xFF]
@@ -305,6 +307,8 @@ class IT8951(DisplayDriver):
                     packed_buffer += [0x0F]
                 elif frame_buffer[i + 1]:
                     packed_buffer += [0xF0]
+                else:
+                    packed_buffer += [0]
             return packed_buffer
         else:
             # old packing code for grayscale (VNC)
