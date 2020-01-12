@@ -657,13 +657,13 @@ class EPD4in2(drivers_partial.WavesharePartial):
     def draw(self, x, y, image):
         """replace a particular area on the display with an image"""
 
-        print("=====================================")
-        print("x: ", x)
-        print("y: ", y)
-        print("image.width:", image.width)
-        print("image.height:", image.height)
-        print("self.width: ", self.width)
-        print("self.height:", self.height)
+        # print("=====================================")
+        # print("x: ", x)
+        # print("y: ", y)
+        # print("image.width:", image.width)
+        # print("image.height:", image.height)
+        # print("self.width: ", self.width)
+        # print("self.height:", self.height)
 
         if self.partial_refresh:
             # self.set_frame_buffer(x, y, image)
