@@ -261,7 +261,8 @@ class IT8951(DisplayDriver):
         self.write_data_half_word(width)
         self.write_data_half_word(height)
 
-        self.write_data_bytes(self.pack_image(image))
+        packed_image = self.pack_image(image)
+        self.write_data_bytes(packed_image)
         self.write_command(self.CMD_LOAD_IMAGE_END);
 
         if update_mode_override is not None:
@@ -278,27 +279,58 @@ class IT8951(DisplayDriver):
 
     def pack_image(self, image):
         """Packs a PIL image for transfer over SPI to the driver board."""
-        frame_buffer = list(image.getdata())
+        if image.mode == '1':
+            # B/W pictured can be processed more quickly
+            frame_buffer = list(image.getdata())
 
-        packed_buffer = [0] * ((len(frame_buffer) + 1) // 2)
-        # For now, only 4 bit packing is supported. Theoretically we could
-        # achieve a transfer speed up by using 2 bit packing for black and white
-        # images. However, 2bpp doesn't seem to play well with the DU rendering
-        # mode.
-        # The driver board assumes all data is read in as 16bit ints. To match
-        # the endianness every pair of bytes must be swapped.
-        for i in range(0, len(frame_buffer), 4):
-            if frame_buffer[i] and frame_buffer[i + 1]:
-                packed_buffer[i // 2 + 1] = 0xFF
-            elif frame_buffer[i]:
-                packed_buffer[i // 2 + 1] = 0x0F
-            elif frame_buffer[i + 1]:
-                packed_buffer[i // 2 + 1] = 0xF0
+            packed_buffer = [0] * ((len(frame_buffer) + 1) // 2)
+            # For now, only 4 bit packing is supported. Theoretically we could
+            # achieve a transfer speed up by using 2 bit packing for black and white
+            # images. However, 2bpp doesn't seem to play well with the DU rendering
+            # mode.
+            # The driver board assumes all data is read in as 16bit ints. To match
+            # the endianness every pair of bytes must be swapped.
+            for i in range(0, len(frame_buffer), 4):
+                if frame_buffer[i] and frame_buffer[i + 1]:
+                    packed_buffer[i // 2 + 1] = 0xFF
+                elif frame_buffer[i]:
+                    packed_buffer[i // 2 + 1] = 0x0F
+                elif frame_buffer[i + 1]:
+                    packed_buffer[i // 2 + 1] = 0xF0
 
-            if frame_buffer[i + 2] and frame_buffer[i + 3]:
-                packed_buffer[i // 2] = 0xFF
-            elif frame_buffer[i + 2]:
-                packed_buffer[i // 2] = 0x0F
-            elif frame_buffer[i + 3]:
-                packed_buffer[i // 2] = 0xF0
-        return packed_buffer
+                if frame_buffer[i + 2] and frame_buffer[i + 3]:
+                    packed_buffer[i // 2] = 0xFF
+                elif frame_buffer[i + 2]:
+                    packed_buffer[i // 2] = 0x0F
+                elif frame_buffer[i + 3]:
+                    packed_buffer[i // 2] = 0xF0
+            return packed_buffer
+        else:
+            # old packing code for grayscale (VNC)
+            image_grey = image.convert("L")
+            pixels = image_grey.load()
+            frame_buffer = [
+                pixels[x, y]
+                for y in range(image.height)
+                for x in range(image.width)
+            ]
+
+            # For now, only 4 bit packing is supported. Theoretically we could
+            # achieve a transfer speed up by using 2 bit packing for black and white
+            # images. However, 2bpp doesn't seem to play well with the DU rendering
+            # mode.
+            packed_buffer = []
+            for i in range(0, len(frame_buffer), 2):
+                value = (frame_buffer[i] >> 4) & 0x0F
+                if i + 1 < len(frame_buffer):
+                    value |= frame_buffer[i + 1] & 0xF0
+                packed_buffer += [value]
+
+            # The driver board assumes all data is read in as 16bit ints. To match
+            # the endianness every pair of bytes must be swapped.
+            # TODO: This should be included in the previous step as in the B/W case
+            for i in range(0, len(packed_buffer), 2):
+                packed_buffer[i], packed_buffer[i + 1] = (
+                        packed_buffer[i + 1], packed_buffer[i])
+
+            return packed_buffer
