@@ -498,11 +498,11 @@ class EPD4in2(drivers_partial.WavesharePartial):
         # this command makes the display enter partial mode
         self.send_command(0x91)
         self.send_command(0x90)   # resolution setting
-        self.send_data((x_start)//256)
-        self.send_data((x_start) % 256)   # x-start
+        self.send_data(x_start//256)
+        self.send_data(x_start % 256)   # x-start
 
-        self.send_data((x_end) // 256)
-        self.send_data((x_end) % 256 - 1)   # x-end
+        self.send_data(x_end // 256)
+        self.send_data(x_end % 256 - 1)   # x-end
 
         self.send_data(y_start // 256)
         self.send_data(y_start % 256)   # y-start
@@ -666,8 +666,10 @@ class EPD4in2(drivers_partial.WavesharePartial):
         print("self.height:", self.height)
 
         if self.partial_refresh:
-            self.set_frame_buffer(x, y, image)
-            self.display_partial(x, y, x + image.height, y + image.width)
+            # self.set_frame_buffer(x, y, image)
+            # self.display_partial(x, y, x + image.height, y + image.width)
+            self.set_frame_buffer(y, x, image)
+            self.display_partial(y, x, y + image.height, x + image.width)
         else:
             self.set_frame_buffer(0, 0, image)
             self.display_full()
