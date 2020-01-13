@@ -399,12 +399,22 @@ def get_drivers():
     """Get the list of available drivers as a dict
     Format: { '<NAME>': { 'desc': '<DESCRIPTION>', 'class': <CLASS> }, ... }"""
     driverdict = {}
-    driverlist = [drivers_partial.EPD1in54, drivers_partial.EPD2in13, drivers_partial.EPD2in13v2, drivers_partial.EPD2in9,
-                  drivers_partial.EPD2in13d,
-                  drivers_full.EPD2in7, driver_4in2.EPD4in2, drivers_full.EPD7in5, drivers_full.EPD7in5v2,
-                  drivers_color.EPD4in2b, drivers_color.EPD7in5b, drivers_color.EPD5in83, drivers_color.EPD5in83b,
-                  drivers_colordraw.EPD1in54b, drivers_colordraw.EPD1in54c, drivers_colordraw.EPD2in13b,
-                  drivers_colordraw.EPD2in7b, drivers_colordraw.EPD2in9b, driver_it8951.IT8951,
+    driverlist = [drivers_partial.EPD1in54, drivers_partial.EPD2in13,
+                  drivers_partial.EPD2in13v2, drivers_partial.EPD2in9,
+                  drivers_partial.EPD2in13d, driver_4in2.EPD4in2,
+
+                  drivers_full.EPD2in7, drivers_full.EPD4in2old,
+                  drivers_full.EPD7in5, drivers_full.EPD7in5v2,
+
+                  drivers_color.EPD4in2b, drivers_color.EPD7in5b,
+                  drivers_color.EPD5in83, drivers_color.EPD5in83b,
+
+                  drivers_colordraw.EPD1in54b, drivers_colordraw.EPD1in54c,
+                  drivers_colordraw.EPD2in13b, drivers_colordraw.EPD2in7b,
+                  drivers_colordraw.EPD2in9b,
+
+                  driver_it8951.IT8951,
+
                   drivers_base.Dummy, drivers_base.Bitmap]
     for driver in driverlist:
         driverdict[driver.__name__] = {'desc': driver.__doc__, 'class': driver}
