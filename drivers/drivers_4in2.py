@@ -216,9 +216,7 @@ class EPD4in2(drivers_partial.WavesharePartial,
         self.delay_ms(10)
         self.turn_on_display()
 
-    def display_full(self, frame_buffer):
-        if not frame_buffer:
-            return
+    def display_full(self):
 
         height = int(self.height // 8
                      if self.height % 8 == 0
@@ -228,67 +226,9 @@ class EPD4in2(drivers_partial.WavesharePartial,
         self.send_command(0x13)
         for j in range(height):
             for i in range(width):
-                self.send_data(frame_buffer[i + j * width])
+                self.send_data(self.frame_buffer[i + j * width])
 
         self.turn_on_display()
-
-    # def display_partial(self, x_start, y_start, x_end, y_end):
-
-    #     width = int(self.width // 8
-    #                 if self.width % 8 == 0
-    #                 else self.width % 8 + 1)
-    #     # height = int(self.height)
-
-    #     x_start = int(x_start if x_start % 8 == 0 else x_start // 8 * 8 + 8)
-    #     x_end = int(x_end if x_end % 8 == 0 else x_end // 8 * 8 + 8)
-
-    #     y_start = int(y_start)
-    #     y_end = int(y_end)
-
-    #     self.send_command(0x50)
-    #     self.send_data(0xf7)
-    #     self.delay_ms(100)
-
-    #     self.send_command(0x82)  # vcom_dc setting
-    #     self.send_data(0x08)
-    #     self.send_command(0x50)
-    #     self.send_data(0x47)
-    #     self.partial_set_lut()
-    #     # this command makes the display enter partial mode
-    #     self.send_command(0x91)
-    #     self.send_command(0x90)   # resolution setting
-    #     self.send_data((x_start)//256)
-    #     self.send_data((x_start) % 256)   # x-start
-
-    #     self.send_data((x_end) // 256)
-    #     self.send_data((x_end) % 256 - 1)   # x-end
-
-    #     self.send_data(y_start // 256)
-    #     self.send_data(y_start % 256)   # y-start
-
-    #     self.send_data(y_end // 256)
-    #     self.send_data(y_end % 256 - 1)   # y-end
-    #     self.send_data(0x28)
-
-    #     self.send_command(0x10)   # writes old data to sram for programming
-    #     for j in range(y_end - y_start):
-    #         for i in range((x_end - x_start) // 8):
-    #             self.send_data(self.frame_buffer[
-    #                 (y_start + j) * width + x_start // 8 + i
-    #             ])
-
-    #     self.send_command(0x13)   # writes new data to sram.
-    #     for j in range(y_end - y_start):
-    #         for i in range((x_end - x_start) // 8):
-    #             # there is an issue, because there are no unsigned values in
-    #             # python, not sure if it matters though
-    #             self.send_data(~self.frame_buffer[
-    #                 (y_start + j) * width + x_start // 8 + i
-    #             ])
-
-    #     self.send_command(self.DISPLAY_REFRESH)   # display refresh
-    #     self.delay_ms(10)  # the delay here is necessary, 200us at least!!!
-    #     self.turn_on_display()
 
     def display_partial(self, x_start, y_start, x_end, y_end):
 
@@ -303,38 +243,30 @@ class EPD4in2(drivers_partial.WavesharePartial,
         y_start = int(y_start)
         y_end = int(y_end)
 
-        self.send_command(0x50)
-        self.send_data(0xf7)
+        self.set_setting(self.VCOM_AND_DATA_INTERVAL_SETTING, [0xf7])
         self.delay_ms(100)
 
-        self.send_command(0x82)  # vcom_dc setting
-        self.send_data(0x08)
-        self.send_command(0x50)
-        self.send_data(0x47)
+        self.set_setting(self.VCM_DC_SETTING, [0x08])
+        self.set_setting(self.VCOM_AND_DATA_INTERVAL_SETTING, [0x47])
         self.partial_set_lut()
-        # this command makes the display enter partial mode
-        self.send_command(0x91)
-        self.send_command(0x90)   # resolution setting
-        self.send_data(x_start//256)
-        self.send_data(x_start % 256)   # x-start
 
-        self.send_data(x_end // 256)
-        self.send_data(x_end % 256 - 1)   # x-end
+        self.send_command(self.PARTIAL_IN)
+        self.set_setting(self.PARTIAL_WINDOW,
+                         [x_start//256, x_start % 256,
+                          x_end // 256, x_end % 256 - 1,
+                          y_start // 256, y_start % 256,
+                          y_end // 256, y_end % 256 - 1,
+                          0x28])
 
-        self.send_data(y_start // 256)
-        self.send_data(y_start % 256)   # y-start
-
-        self.send_data(y_end // 256)
-        self.send_data(y_end % 256 - 1)   # y-end
-        self.send_data(0x28)
-
-        self.send_command(0x10)   # writes old data to sram for programming
+        # writes old data to sram for programming
+        self.send_command(self.DATA_START_TRANSMISSION_1)
         for j in range(y_end - y_start):
             idx = (y_start + j) * height + x_start // 8
             for i in range((x_end - x_start) // 8):
                 self.send_data(self.frame_buffer[idx + i])
 
-        self.send_command(0x13)   # writes new data to sram.
+        # writes new data to sram.
+        self.send_command(self.DATA_START_TRANSMISSION_2)
         for j in range(y_end - y_start):
             idx = (y_start + j) * height + x_start // 8
             for i in range((x_end - x_start) // 8):
