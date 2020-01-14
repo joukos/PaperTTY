@@ -47,9 +47,19 @@ class EPD4in2(drivers_partial.WavesharePartial,
         # this is the memory buffer that will be updated!
         self.frame_buffer = [0x00] * (self.width * self.height // 8)
 
+    # TODO: universal?
+    def set_setting(self, command, data):
+        self.send_command(command)
+        for d in data:
+            self.send_data(d)
 
-    # all of these override existing methods, they are
-    # implemented differently in the c file...
+    # TODO: universal?
+    def set_resolution(self):
+        self.set_setting(self.RESOLUTION_SETTING,
+                         [(self.height >> 8) & 0xff,
+                          self.height & 0xff,
+                          (self.width >> 8) & 0xff,
+                          self.width & 0xff])
 
     def reset(self):
         self.digital_write(self.RST_PIN, GPIO.HIGH)
@@ -83,84 +93,27 @@ class EPD4in2(drivers_partial.WavesharePartial,
         self.wait_until_idle()
 
     def full_set_lut(self):
-        self.send_command(self.VCOM_LUT)
-        for i in range(0, len(self.lut_vcom0)):
-            self.send_data(self.lut_vcom0[i])
-
-        self.send_command(self.W2W_LUT)
-        for i in range(0, len(self.lut_ww)):
-            self.send_data(self.lut_ww[i])
-
-        self.send_command(self.B2W_LUT)
-        for i in range(0, len(self.lut_bw)):
-            self.send_data(self.lut_bw[i])
-
-        self.send_command(self.W2B_LUT)
-        for i in range(0, len(self.lut_wb)):
-            self.send_data(self.lut_wb[i])
-
-        self.send_command(self.B2B_LUT)
-        for i in range(0, len(self.lut_bb)):
-            self.send_data(self.lut_bb[i])
+        self.set_setting(self.VCOM_LUT, self.lut_vcom0)
+        self.set_setting(self.W2W_LUT, self.lut_ww)
+        self.set_setting(self.B2W_LUT, self.lut_bw)
+        self.set_setting(self.W2B_LUT, self.lut_wb)
+        self.set_setting(self.B2B_LUT, self.lut_bb)
 
     def partial_set_lut(self):
-        self.send_command(self.VCOM_LUT)
-        for i in range(0, len(self.partial_lut_vcom1)):
-            self.send_data(self.partial_lut_vcom1[i])
-
-        self.send_command(self.W2W_LUT)
-        for i in range(0, len(self.partial_lut_ww1)):
-            self.send_data(self.partial_lut_ww1[i])
-
-        self.send_command(self.B2W_LUT)
-        for i in range(0, len(self.partial_lut_bw1)):
-            self.send_data(self.partial_lut_bw1[i])
-
-        self.send_command(self.W2B_LUT)
-        for i in range(0, len(self.partial_lut_wb1)):
-            self.send_data(self.partial_lut_wb1[i])
-
-        self.send_command(self.B2B_LUT)
-        for i in range(0, len(self.partial_lut_bb1)):
-            self.send_data(self.partial_lut_bb1[i])
+        self.set_setting(self.VCOM_LUT, self.partial_lut_vcom1)
+        self.set_setting(self.W2W_LUT, self.partial_lut_ww1)
+        self.set_setting(self.B2W_LUT, self.partial_lut_bw1)
+        self.set_setting(self.W2B_LUT, self.partial_lut_wb1)
+        self.set_setting(self.B2B_LUT, self.partial_lut_bb1)
 
     def gray_set_lut(self):
-        self.send_command(self.VCOM_LUT)
-        for i in range(0, len(self.gray_lut_vcom)):
-            self.send_data(self.gray_lut_vcom[i])
+        self.set_setting(self.VCOM_LUT, self.gray_lut_vcom)
+        self.set_setting(self.W2W_LUT, self.gray_lut_ww)
+        self.set_setting(self.B2W_LUT, self.gray_lut_bw)
+        self.set_setting(self.W2B_LUT, self.gray_lut_wb)
+        self.set_setting(self.B2B_LUT, self.gray_lut_bb)
 
-        self.send_command(self.W2W_LUT)
-        for i in range(0, len(self.gray_lut_ww)):
-            self.send_data(self.gray_lut_ww[i])
-
-        self.send_command(self.B2W_LUT)
-        for i in range(0, len(self.gray_lut_bw)):
-            self.send_data(self.gray_lut_bw[i])
-
-        self.send_command(self.W2B_LUT)
-        for i in range(0, len(self.gray_lut_wb)):
-            self.send_data(self.gray_lut_wb[i])
-
-        self.send_command(self.B2B_LUT)
-        for i in range(0, len(self.gray_lut_bb)):
-            self.send_data(self.gray_lut_bb[i])
-
-
-    # TODO: universal?
-    def set_setting(self, command, data):
-        self.send_command(command)
-        for d in data:
-            self.send_data(d)
-
-    # TODO: universal?
-    def set_resolution(self):
-        self.set_setting(self.RESOLUTION_SETTING,
-                         [(self.width >> 8) & 0xff,
-                          self.width & 0xff,
-                          (self.height >> 8) & 0xff,
-                          self.height & 0xff])
-
-    def init_full(self):
+    def init_bw(self):
         self.reset()
         self.set_setting(self.POWER_SETTING, [0x03, 0x00, 0x2b, 0x2b])
         self.set_setting(self.BOOSTER_SOFT_START, [0x17, 0x17, 0x17])
@@ -189,14 +142,15 @@ class EPD4in2(drivers_partial.WavesharePartial,
 
     def init(self, partial=True, gray=False):
         self.partial_refresh = partial
+        self.gray = gray
 
         if self.epd_init() != 0:
             return -1
 
-        if gray:
+        if self.gray:
             self.init_gray()
         else:
-            self.init_full()
+            self.init_bw()
 
     def clear(self):
         height = int(self.height // 8
@@ -223,10 +177,10 @@ class EPD4in2(drivers_partial.WavesharePartial,
                      else self.height % 8 + 1)
         width = int(self.width)
 
-        self.send_command(0x13)
-        for j in range(height):
-            for i in range(width):
-                self.send_data(self.frame_buffer[i + j * width])
+        self.send_command(self.DATA_START_TRANSMISSION_2)
+        for j in range(width):
+            for i in range(height):
+                self.send_data(self.frame_buffer[j * height + i])
 
         self.turn_on_display()
 
@@ -406,13 +360,13 @@ class EPD4in2(drivers_partial.WavesharePartial,
     def draw(self, x, y, image):
         """replace a particular area on the display with an image"""
 
-        # print("=====================================")
-        # print("x: ", x)
-        # print("y: ", y)
-        # print("image.width:", image.width)
-        # print("image.height:", image.height)
-        # print("self.width: ", self.width)
-        # print("self.height:", self.height)
+        print("=====================================")
+        print("x: ", x)
+        print("y: ", y)
+        print("image.width:", image.width)
+        print("image.height:", image.height)
+        print("self.width: ", self.width)
+        print("self.height:", self.height)
 
         if self.partial_refresh:
             # self.set_frame_buffer(x, y, image)
@@ -421,4 +375,6 @@ class EPD4in2(drivers_partial.WavesharePartial,
             self.display_partial(y, x, y + image.height, x + image.width)
         else:
             self.set_frame_buffer(0, 0, image)
+            # this one is much faster!!!
+            # self.display_partial(y, x, y + image.height, x + image.width)
             self.display_full()
