@@ -1,5 +1,9 @@
 # PaperTTY
 
+## IT8951 Optimization II *(2020-01-15)*
+
+The previous optimization was improved further to speed up VNC output too. If you try it, please leave a comment at https://github.com/joukos/PaperTTY/issues/32 (and create a new issue if there's problems).
+
 ## IT8951 Optimization *(2020-01-11)*
 
 An optimization by @chi-lambda for the IT8951 driver was merged and may speed up the bit-packing in TTY mode even by up to **10x** for these displays, so the refresh rates should be significantly better now. Please create an issue if there are problems (the unoptimized version can be checked out with the tag `v0.03_unoptimized`).
