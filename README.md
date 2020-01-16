@@ -1,5 +1,9 @@
 # PaperTTY
 
+## Optimizations in C (2020-01-05)
+
+The packing algorithm has been reimplemented in C, which sped things up even more. It can be found in the `c-packing` branch. The next frontier would be speeding up the sending of data via SPI.
+
 ## IT8951 Optimization II *(2020-01-15)*
 
 The previous optimization was improved further to speed up VNC output too. If you try it, please leave a comment at https://github.com/joukos/PaperTTY/issues/32 (and create a new issue if there's problems).
