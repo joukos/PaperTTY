@@ -51,6 +51,8 @@ class PaperTTY:
     initialized = None
     font = None
     fontsize = None
+    font_height = None
+    font_width = None
     white = None
     black = None
     encoding = None
@@ -59,6 +61,17 @@ class PaperTTY:
         """Create a PaperTTY with the chosen driver and settings"""
         self.driver = get_drivers()[driver]['class']()
         self.font = self.load_font(font, fontsize) if font else None
+        if self.font:
+            # get physical dimensions of font
+            self.font_width = self.font.getsize('M')[0]
+            if 'getmetrics' in dir(self.font):
+                metrics_ascent, metrics_descent = self.font.getmetrics()
+                # Pillow docs say descent is negative, but that's not true.
+                self.font_height = metrics_ascent
+            else:
+                # pil fonts don't seem to have metrics, so we do this hack
+                self.font_height = self.font.getsize('gh')[0]
+        
         self.fontsize = fontsize
         self.partial = partial
         self.white = self.driver.white
@@ -87,7 +100,7 @@ class PaperTTY:
                 print("Try setting a sane size manually.")
 
     @staticmethod
-    def font_height(font, spacing=0):
+    def get_font_height(font, spacing=0):
         """Calculate 'actual' height of a font"""
         # check if font is a TrueType font
         truetype = isinstance(font, ImageFont.FreeTypeFont)
@@ -193,7 +206,7 @@ class PaperTTY:
     def fit(self, portrait=False, spacing=0):
         """Return the maximum columns and rows we can display with this font"""
         width = self.font.getsize('M')[0]
-        height = self.font_height(self.font, spacing)
+        height = self.get_font_height(self.font, spacing)
         # hacky, subtract just a bit to avoid going over the border with small fonts
         pw = self.driver.width - 3
         ph = self.driver.height
@@ -220,6 +233,7 @@ class PaperTTY:
                 # apply invert
                 if invert:
                     new_vnc_image = ImageOps.invert(new_vnc_image)
+                new_vnc_image = new_vnc_image.convert('1')
                 # rescale image if needed
                 if new_vnc_image.size != (self.driver.width, self.driver.height):
                     new_vnc_image = new_vnc_image.resize((self.driver.width, self.driver.height))
@@ -268,7 +282,7 @@ class PaperTTY:
                 # desired cursor width
                 cur_width = fw - 1
                 # get font height
-                height = self.font_height(self.font, spacing)
+                height = self.font_height + spacing
                 # starting X is the font width times current column
                 start_x = cur_x * fw
                 # add 1 because rows start at 0 and we want the cursor at the bottom
@@ -495,7 +509,6 @@ def terminal(settings, vcsa, font, fontsize, noclear, nocursor, sleep, ttyrows, 
                     char_under_cursor = buff[4 * (y * rows + x):4 * (y * rows + x + 1)]
                     cursor = (x, y, char_under_cursor.decode('utf_32', 'ignore'))
                     # add newlines per column count
-                    #print(len(lines))
                     buff = ''.join([r.decode('utf_32', 'replace') + '\n' for r in ptty.split(buff, cols*4)])
                     # do something only if content has changed or cursor was moved
                     if buff != oldbuff or cursor != oldcursor:
