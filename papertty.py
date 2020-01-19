@@ -233,7 +233,6 @@ class PaperTTY:
                 # apply invert
                 if invert:
                     new_vnc_image = ImageOps.invert(new_vnc_image)
-                new_vnc_image = new_vnc_image.convert('1')
                 # rescale image if needed
                 if new_vnc_image.size != (self.driver.width, self.driver.height):
                     new_vnc_image = new_vnc_image.resize((self.driver.width, self.driver.height))
