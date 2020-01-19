@@ -369,12 +369,8 @@ class EPD4in2(drivers_partial.WavesharePartial,
         print("self.height:", self.height)
 
         if self.partial_refresh:
-            # self.set_frame_buffer(x, y, image)
-            # self.display_partial(x, y, x + image.height, y + image.width)
             self.set_frame_buffer(y, x, image)
             self.display_partial(y, x, y + image.height, x + image.width)
         else:
             self.set_frame_buffer(0, 0, image)
-            # this one is much faster!!!
-            # self.display_partial(y, x, y + image.height, x + image.width)
             self.display_full()
