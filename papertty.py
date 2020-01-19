@@ -53,9 +53,8 @@ class PaperTTY:
     fontsize = None
     white = None
     black = None
-    encoding = None
 
-    def __init__(self, driver, font=defaultfont, fontsize=defaultsize, partial=None, encoding='utf-8'):
+    def __init__(self, driver, font=defaultfont, fontsize=defaultsize, partial=None):
         """Create a PaperTTY with the chosen driver and settings"""
         self.driver = get_drivers()[driver]['class']()
         self.font = self.load_font(font, fontsize) if font else None
@@ -63,7 +62,6 @@ class PaperTTY:
         self.partial = partial
         self.white = self.driver.white
         self.black = self.driver.black
-        self.encoding = encoding
 
     def ready(self):
         """Check that the driver is loaded and initialized"""
@@ -337,9 +335,8 @@ def get_driver_list():
 @click.group()
 @click.option('--driver', default=None, help='Select display driver')
 @click.option('--nopartial', is_flag=True, default=False, help="Don't use partial updates even if display supports it")
-@click.option('--encoding', default='utf-8', help='Encoding to use for the buffer', show_default=True)
 @click.pass_context
-def cli(ctx, driver, nopartial, encoding):
+def cli(ctx, driver, nopartial):
     """Display stdin or TTY on a Waveshare e-Paper display"""
     if not driver:
         PaperTTY.error(
@@ -349,7 +346,7 @@ def cli(ctx, driver, nopartial, encoding):
         matched_drivers = [n for n in get_drivers() if n.lower() == driver.lower()]
         if not matched_drivers:
             PaperTTY.error('Invalid driver selection, choose from:\n{}'.format(get_driver_list()))
-        ctx.obj = Settings(driver=matched_drivers[0], partial=not nopartial, encoding=encoding)
+        ctx.obj = Settings(driver=matched_drivers[0], partial=not nopartial)
     pass
 
 
@@ -490,12 +487,10 @@ def terminal(settings, vcsa, font, fontsize, noclear, nocursor, sleep, ttyrows, 
                     # # SKIP all the attribute bytes
                     # # (change this (and write more code!) if you want to use the attributes with a
                     # # three-color display)
-                    # buff = buff[0::2]
                     # find character under cursor (in case using a non-fixed width font)
                     char_under_cursor = buff[4 * (y * rows + x):4 * (y * rows + x + 1)]
                     cursor = (x, y, char_under_cursor.decode('utf_32', 'ignore'))
                     # add newlines per column count
-                    #print(len(lines))
                     buff = ''.join([r.decode('utf_32', 'replace') + '\n' for r in ptty.split(buff, cols*4)])
                     # do something only if content has changed or cursor was moved
                     if buff != oldbuff or cursor != oldcursor:
