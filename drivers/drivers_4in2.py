@@ -17,13 +17,13 @@
 
 from drivers import drivers_partial
 from drivers import drivers_consts
+from PIL import Image
+
 try:
     import RPi.GPIO as GPIO
 except ImportError:
     pass
 
-
-from PIL import Image, ImageChops, ImageDraw, ImageFont, ImageOps
 
 class EPD4in2(drivers_partial.WavesharePartial,
               drivers_consts.EPD4in2const):
@@ -42,7 +42,8 @@ class EPD4in2(drivers_partial.WavesharePartial,
 
     def __init__(self):
         super(drivers_partial.WavesharePartial, self).__init__(name='4.2"',
-                                                               width=300, height=400)
+                                                               width=300,
+                                                               height=400)
 
         # this is the memory buffer that will be updated!
         self.frame_buffer = [0x00] * (self.width * self.height // 8)
@@ -119,11 +120,14 @@ class EPD4in2(drivers_partial.WavesharePartial,
         self.set_setting(self.BOOSTER_SOFT_START, [0x17, 0x17, 0x17])
         self.send_command(self.POWER_ON)
         self.wait_until_idle()
-        self.set_setting(self.PANEL_SETTING, [0xbf, 0x0d]) # kw-bf kwr-af bwrotp 0f bwotp 1f
-        self.set_setting(self.PLL_CONTROL, [0x3c]) # 3a 100hz   29 150hz 39 200hz	31 171hz
+        # kw-bf kwr-af bwrotp 0f bwotp 1f
+        self.set_setting(self.PANEL_SETTING, [0xbf, 0x0d])
+        # 3a 100hz   29 150hz 39 200hz	31 171hz
+        self.set_setting(self.PLL_CONTROL, [0x3c])
         self.set_resolution()
         self.set_setting(self.VCM_DC_SETTING, [0x28])
-        # wbmode:vbdf 17|d7 vbdw 97 vbdb 57 wbrmode:vbdf f7 vbdw 77 vbdb 37 vbdr b7
+        # wbmode: vbdf 17|d7 vbdw 97 vbdb 57
+        # wbrmode:vbdf f7 vbdw 77 vbdb 37 vbdr b7
         self.set_setting(self.VCOM_AND_DATA_INTERVAL_SETTING, [0x97])
         self.full_set_lut()
 
@@ -133,11 +137,14 @@ class EPD4in2(drivers_partial.WavesharePartial,
         self.set_setting(self.BOOSTER_SOFT_START, [0x17, 0x17, 0x17])
         self.send_command(self.POWER_ON)
         self.wait_until_idle()
-        self.set_setting(self.PANEL_SETTING, [0x3f]) # kw-3f  kwr-2f  bwrotp 0f  bwotp 1f
-        self.set_setting(self.PLL_CONTROL, [0x3c]) # 3a 100hz   29 150hz 39 200hz	31 171hz
+        # kw-3f  kwr-2f  bwrotp 0f  bwotp 1f
+        self.set_setting(self.PANEL_SETTING, [0x3f])
+        # 3a 100hz   29 150hz 39 200hz	31 171hz
+        self.set_setting(self.PLL_CONTROL, [0x3c])
         self.set_resolution()
         self.set_setting(self.VCM_DC_SETTING, [0x12])
-        # wbmode:vbdf 17|d7 vbdw 97 vbdb 57 wbrmode:vbdf f7 vbdw 77 vbdb 37 vbdr b7
+        # wbmode:vbdf 17|d7 vbdw 97 vbdb 57
+        # wbrmode:vbdf f7 vbdw 77 vbdb 37 vbdr b7
         self.set_setting(self.VCOM_AND_DATA_INTERVAL_SETTING, [0x97])
 
     def init(self, partial=True, gray=False):
@@ -154,8 +161,8 @@ class EPD4in2(drivers_partial.WavesharePartial,
 
     def clear(self):
         height = int(self.height // 8
-                    if self.height % 8 == 0
-                    else self.height % 8 + 1)
+                     if self.height % 8 == 0
+                     else self.height % 8 + 1)
         width = int(self.width)
 
         self.send_command(self.DATA_START_TRANSMISSION_1)
@@ -339,23 +346,16 @@ class EPD4in2(drivers_partial.WavesharePartial,
                 idiv = i // 8
                 irem = i % 8
                 mask = 0x01 << (7 - irem)
-                if pixels[j - y, i - x] != 0:
+                if pixels[j - y, self.height - (i - x) - 1] != 0:
                     self.frame_buffer[idiv + idxj] |= mask
                 else:
                     self.frame_buffer[idiv + idxj] &= ~mask
 
     def fill(self, color, fillsize):
-        """slow fill routine"""
+        """Slow fill routine"""
         image = Image.new('1', (fillsize, self.height), color)
-        for y in range(0, self.width, fillsize):
-            self.draw(0, y, image)
-
-    ### The original fill method:
-    # def fill(self, color, fillsize):
-    #     """Slow fill routine"""
-    #     image = Image.new('1', (fillsize, self.height), color)
-    #     for x in range(0, self.height, fillsize):
-    #         self.draw(x, 0, image)
+        for x in range(0, self.width, fillsize):
+            self.draw(x, 0, image)
 
     def draw(self, x, y, image):
         """replace a particular area on the display with an image"""
