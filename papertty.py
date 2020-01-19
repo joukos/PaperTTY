@@ -131,6 +131,11 @@ class PaperTTY:
     def ttydev(vcsa):
         """Return associated tty for vcsa device, ie. /dev/vcsa1 -> /dev/tty1"""
         return vcsa.replace("vcsa", "tty")
+    
+    @staticmethod
+    def vcsudev(vcsa):
+        """Return associated vcsu for vcsa device, ie. /dev/vcsa1 -> /dev/vcsu1"""
+        return vcsa.replace("vcsa", "vcsu")
 
     @staticmethod
     def valid_vcsa(vcsa):
@@ -259,7 +264,7 @@ class PaperTTY:
                 cur_x, cur_y = cursor[0], cursor[1]
                 # get the width of the character under cursor
                 # (in case we didn't use a fixed width font...)
-                fw = self.font.getsize(chr(cursor[2]))[0]
+                fw = self.font.getsize(cursor[2])[0]
                 # desired cursor width
                 cur_width = fw - 1
                 # get font height
@@ -475,32 +480,34 @@ def terminal(settings, vcsa, font, fontsize, noclear, nocursor, sleep, ttyrows, 
                 oldbuff = ''
                 flags['scrub_requested'] = False
             with open(vcsa, 'rb') as f:
-                # read the first 4 bytes to get the console attributes
-                attributes = f.read(4)
-                rows, cols, x, y = list(map(ord, struct.unpack('cccc', attributes)))
+                with open(ptty.vcsudev(vcsa), 'rb') as vcsu:
+                    # read the first 4 bytes to get the console attributes
+                    attributes = f.read(4)
+                    rows, cols, x, y = list(map(ord, struct.unpack('cccc', attributes)))
 
-                # read rest of the console content into buffer
-                buff = f.read()
-                # SKIP all the attribute bytes
-                # (change this (and write more code!) if you want to use the attributes with a
-                # three-color display)
-                buff = buff[0::2]
-                # find character under cursor (in case using a non-fixed width font)
-                char_under_cursor = buff[y * rows + x]
-                cursor = (x, y, char_under_cursor)
-                # add newlines per column count
-                buff = ''.join([r.decode(ptty.encoding, 'ignore') + '\n' for r in ptty.split(buff, cols)])
-                # do something only if content has changed or cursor was moved
-                if buff != oldbuff or cursor != oldcursor:
-                    # show new content
-                    oldimage = ptty.showtext(buff, fill=ptty.black, cursor=cursor if not nocursor else None,
-                                             oldimage=oldimage,
-                                             **textargs)
-                    oldbuff = buff
-                    oldcursor = cursor
-                else:
-                    # delay before next update check
-                    time.sleep(float(sleep))
+                    # read rest of the console content into buffer
+                    buff = vcsu.read()
+                    # # SKIP all the attribute bytes
+                    # # (change this (and write more code!) if you want to use the attributes with a
+                    # # three-color display)
+                    # buff = buff[0::2]
+                    # find character under cursor (in case using a non-fixed width font)
+                    char_under_cursor = buff[4 * (y * rows + x):4 * (y * rows + x + 1)]
+                    cursor = (x, y, char_under_cursor.decode('utf_32', 'ignore'))
+                    # add newlines per column count
+                    #print(len(lines))
+                    buff = ''.join([r.decode('utf_32', 'replace') + '\n' for r in ptty.split(buff, cols*4)])
+                    # do something only if content has changed or cursor was moved
+                    if buff != oldbuff or cursor != oldcursor:
+                        # show new content
+                        oldimage = ptty.showtext(buff, fill=ptty.black, cursor=cursor if not nocursor else None,
+                                                oldimage=oldimage,
+                                                **textargs)
+                        oldbuff = buff
+                        oldcursor = cursor
+                    else:
+                        # delay before next update check
+                        time.sleep(float(sleep))
 
 
 if __name__ == '__main__':
