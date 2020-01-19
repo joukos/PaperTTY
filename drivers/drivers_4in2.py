@@ -93,25 +93,25 @@ class EPD4in2(drivers_partial.WavesharePartial,
         self.wait_until_idle()
 
     def full_set_lut(self):
-        self.set_setting(self.VCOM_LUT, self.lut_vcom0)
-        self.set_setting(self.W2W_LUT, self.lut_ww)
-        self.set_setting(self.B2W_LUT, self.lut_bw)
-        self.set_setting(self.W2B_LUT, self.lut_wb)
-        self.set_setting(self.B2B_LUT, self.lut_bb)
+        self.set_setting(self.VCOM_LUT, self.LUT_VCOM0)
+        self.set_setting(self.W2W_LUT, self.LUT_WW)
+        self.set_setting(self.B2W_LUT, self.LUT_BW)
+        self.set_setting(self.W2B_LUT, self.LUT_WB)
+        self.set_setting(self.B2B_LUT, self.LUT_BB)
 
     def partial_set_lut(self):
-        self.set_setting(self.VCOM_LUT, self.partial_lut_vcom1)
-        self.set_setting(self.W2W_LUT, self.partial_lut_ww1)
-        self.set_setting(self.B2W_LUT, self.partial_lut_bw1)
-        self.set_setting(self.W2B_LUT, self.partial_lut_wb1)
-        self.set_setting(self.B2B_LUT, self.partial_lut_bb1)
+        self.set_setting(self.VCOM_LUT, self.PARTIAL_LUT_VCOM1)
+        self.set_setting(self.W2W_LUT, self.PARTIAL_LUT_WW1)
+        self.set_setting(self.B2W_LUT, self.PARTIAL_LUT_BW1)
+        self.set_setting(self.W2B_LUT, self.PARTIAL_LUT_WB1)
+        self.set_setting(self.B2B_LUT, self.PARTIAL_LUT_BB1)
 
     def gray_set_lut(self):
-        self.set_setting(self.VCOM_LUT, self.gray_lut_vcom)
-        self.set_setting(self.W2W_LUT, self.gray_lut_ww)
-        self.set_setting(self.B2W_LUT, self.gray_lut_bw)
-        self.set_setting(self.W2B_LUT, self.gray_lut_wb)
-        self.set_setting(self.B2B_LUT, self.gray_lut_bb)
+        self.set_setting(self.VCOM_LUT, self.GRAY_LUT_VCOM)
+        self.set_setting(self.W2W_LUT, self.GRAY_LUT_WW)
+        self.set_setting(self.B2W_LUT, self.GRAY_LUT_BW)
+        self.set_setting(self.W2B_LUT, self.GRAY_LUT_WB)
+        self.set_setting(self.B2B_LUT, self.GRAY_LUT_BB)
 
     def init_bw(self):
         self.reset()
