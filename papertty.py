@@ -145,13 +145,12 @@ class PaperTTY:
         """Return associated tty for vcsa device, ie. /dev/vcsa1 -> /dev/tty1"""
         return vcsa.replace("vcsa", "tty")
     
-    @staticmethod
-    def vcsudev(vcsa):
+    def vcsudev(self, vcsa):
         """Return character width and associated vcs(u) for vcsa device,
            ie. for /dev/vcsa1, retunr (4, "/dev/vcsu1") if vcsu is available, or
            (1, "/dev/vcs1") if not"""
         dev = vcsa.replace("vcsa", "vcsu")
-        if os.path.exists(dev):
+        if isinstance(self.font, ImageFont.FreeTypeFont) and os.path.exists(dev):
             return 4, dev
         else:
             return 1, vcsa.replace("vcsa", "vcs")
