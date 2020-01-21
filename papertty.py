@@ -476,6 +476,7 @@ def terminal(settings, vcsa, font, fontsize, noclear, nocursor, sleep, ttyrows, 
                 print("Automatic resize of TTY to {} rows, {} columns".format(max_dim[1], max_dim[0]))
                 ptty.set_tty_size(ptty.ttydev(vcsa), max_dim[1], max_dim[0])
         print("Started displaying {}, minimum update interval {} s, exit with Ctrl-C".format(vcsa, sleep))
+        character_width, vcsudev = ptty.vcsudev(vcsa)
         while True:
             # if SIGUSR1 toggled the scrub flag, scrub display and start with a fresh image
             if flags['scrub_requested']:
@@ -485,7 +486,6 @@ def terminal(settings, vcsa, font, fontsize, noclear, nocursor, sleep, ttyrows, 
                 oldbuff = ''
                 flags['scrub_requested'] = False
             with open(vcsa, 'rb') as f:
-                character_width, vcsudev = ptty.vcsudev(vcsa)
                 with open(vcsudev, 'rb') as vcsu:
                     # read the first 4 bytes to get the console attributes
                     attributes = f.read(4)
