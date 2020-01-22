@@ -499,7 +499,6 @@ Some notes:
     - The `scrub` feature may be entirely unnecessary for normally functioning units
 - The code is surely littered with bugs and could use some refactoring
 - You need to figure out the parameters, font and encodings that work for *you*
-  - Importantly, Unicode support is lacking because the virtual terminal stores glyph indices in the buffer and the original value is lost in translation - my understanding is that there is currently development [being done](https://lkml.org/lkml/2018/6/26/1062) for the kernel to implement `/dev/vcsu*` which would rectify this, but it's not yet in the mainline kernel - option to use a pseudo TTY would be welcome in the mean time
 - Not much thought given to tricolor displays - you need to modify the part where attributes are skipped and implement it yourself (or donate such a display and I might take a look...)
 - Minimal error handling
 - You can't set an arbitrary size for the terminals with `ioctl`s - it would be better to use some pseudo terminal for this but then again, sometimes you specifically want `tty1` (imagine server crashing and having the kernel log imprinted on the e-ink)
