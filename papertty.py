@@ -131,6 +131,21 @@ class PaperTTY:
     def ttydev(vcsa):
         """Return associated tty for vcsa device, ie. /dev/vcsa1 -> /dev/tty1"""
         return vcsa.replace("vcsa", "tty")
+    
+    def vcsudev(self, vcsa):
+        """Return character width and associated vcs(u) for vcsa device,
+           ie. for /dev/vcsa1, retunr (4, "/dev/vcsu1") if vcsu is available, or
+           (1, "/dev/vcs1") if not"""
+        dev = vcsa.replace("vcsa", "vcsu")
+        if os.path.exists(dev):
+            if isinstance(self.font, ImageFont.FreeTypeFont):
+                return 4, dev
+            else:
+                print("Font {} doesn't support Unicode. Falling back to 8-bit encoding.".format(self.font.file))
+                return 1, vcsa.replace("vcsa", "vcs")
+        else:
+            print("System does not have /dev/vcsu. Falling back to 8-bit encoding.")
+            return 1, vcsa.replace("vcsa", "vcs")
 
     @staticmethod
     def valid_vcsa(vcsa):
@@ -259,7 +274,7 @@ class PaperTTY:
                 cur_x, cur_y = cursor[0], cursor[1]
                 # get the width of the character under cursor
                 # (in case we didn't use a fixed width font...)
-                fw = self.font.getsize(chr(cursor[2]))[0]
+                fw = self.font.getsize(cursor[2])[0]
                 # desired cursor width
                 cur_width = fw - 1
                 # get font height
@@ -332,7 +347,7 @@ def get_driver_list():
 @click.group()
 @click.option('--driver', default=None, help='Select display driver')
 @click.option('--nopartial', is_flag=True, default=False, help="Don't use partial updates even if display supports it")
-@click.option('--encoding', default='utf-8', help='Encoding to use for the buffer', show_default=True)
+@click.option('--encoding', default='latin_1', help='Encoding to use for the buffer', show_default=True)
 @click.pass_context
 def cli(ctx, driver, nopartial, encoding):
     """Display stdin or TTY on a Waveshare e-Paper display"""
@@ -466,6 +481,7 @@ def terminal(settings, vcsa, font, fontsize, noclear, nocursor, sleep, ttyrows, 
                 print("Automatic resize of TTY to {} rows, {} columns".format(max_dim[1], max_dim[0]))
                 ptty.set_tty_size(ptty.ttydev(vcsa), max_dim[1], max_dim[0])
         print("Started displaying {}, minimum update interval {} s, exit with Ctrl-C".format(vcsa, sleep))
+        character_width, vcsudev = ptty.vcsudev(vcsa)
         while True:
             # if SIGUSR1 toggled the scrub flag, scrub display and start with a fresh image
             if flags['scrub_requested']:
@@ -475,32 +491,33 @@ def terminal(settings, vcsa, font, fontsize, noclear, nocursor, sleep, ttyrows, 
                 oldbuff = ''
                 flags['scrub_requested'] = False
             with open(vcsa, 'rb') as f:
-                # read the first 4 bytes to get the console attributes
-                attributes = f.read(4)
-                rows, cols, x, y = list(map(ord, struct.unpack('cccc', attributes)))
+                with open(vcsudev, 'rb') as vcsu:
+                    # read the first 4 bytes to get the console attributes
+                    attributes = f.read(4)
+                    rows, cols, x, y = list(map(ord, struct.unpack('cccc', attributes)))
 
-                # read rest of the console content into buffer
-                buff = f.read()
-                # SKIP all the attribute bytes
-                # (change this (and write more code!) if you want to use the attributes with a
-                # three-color display)
-                buff = buff[0::2]
-                # find character under cursor (in case using a non-fixed width font)
-                char_under_cursor = buff[y * rows + x]
-                cursor = (x, y, char_under_cursor)
-                # add newlines per column count
-                buff = ''.join([r.decode(ptty.encoding, 'ignore') + '\n' for r in ptty.split(buff, cols)])
-                # do something only if content has changed or cursor was moved
-                if buff != oldbuff or cursor != oldcursor:
-                    # show new content
-                    oldimage = ptty.showtext(buff, fill=ptty.black, cursor=cursor if not nocursor else None,
-                                             oldimage=oldimage,
-                                             **textargs)
-                    oldbuff = buff
-                    oldcursor = cursor
-                else:
-                    # delay before next update check
-                    time.sleep(float(sleep))
+                    # read from the text buffer 
+                    buff = vcsu.read()
+                    if character_width == 4:
+                        # work around weird bug
+                        buff = buff.replace(b'\x20\x20\x20\x20', b'\x20\x00\x00\x00')
+                    # find character under cursor (in case using a non-fixed width font)
+                    char_under_cursor = buff[character_width * (y * rows + x):character_width * (y * rows + x + 1)]
+                    encoding = 'utf_32' if character_width == 4 else ptty.encoding
+                    cursor = (x, y, char_under_cursor.decode(encoding, 'ignore'))
+                    # add newlines per column count
+                    buff = ''.join([r.decode(encoding, 'replace') + '\n' for r in ptty.split(buff, cols * character_width)])
+                    # do something only if content has changed or cursor was moved
+                    if buff != oldbuff or cursor != oldcursor:
+                        # show new content
+                        oldimage = ptty.showtext(buff, fill=ptty.black, cursor=cursor if not nocursor else None,
+                                                oldimage=oldimage,
+                                                **textargs)
+                        oldbuff = buff
+                        oldcursor = cursor
+                    else:
+                        # delay before next update check
+                        time.sleep(float(sleep))
 
 
 if __name__ == '__main__':

@@ -1,5 +1,9 @@
 # PaperTTY
 
+## Unicode Update *(2020-01-22)*
+
+On systems with /dev/vcsu* (e.g. Raspbian Stretch or Buster, with kernel 4.19+) and when using a TrueType font, the `terminal` mode now has full support for Unicode output. This is automatic, with a fallback to 8-bit if either of these requirements isn't met. We've also changed the standard encoding for 8-bit to ISO-8859-1, which should be a little closer to what the `vcs` device provides.
+
 ## IT8951 Optimization II *(2020-01-15)*
 
 The previous optimization was improved further to speed up VNC output too. If you try it, please leave a comment at https://github.com/joukos/PaperTTY/issues/32 (and create a new issue if there's problems).
@@ -495,7 +499,6 @@ Some notes:
     - The `scrub` feature may be entirely unnecessary for normally functioning units
 - The code is surely littered with bugs and could use some refactoring
 - You need to figure out the parameters, font and encodings that work for *you*
-  - Importantly, Unicode support is lacking because the virtual terminal stores glyph indices in the buffer and the original value is lost in translation - my understanding is that there is currently development [being done](https://lkml.org/lkml/2018/6/26/1062) for the kernel to implement `/dev/vcsu*` which would rectify this, but it's not yet in the mainline kernel - option to use a pseudo TTY would be welcome in the mean time
 - Not much thought given to tricolor displays - you need to modify the part where attributes are skipped and implement it yourself (or donate such a display and I might take a look...)
 - Minimal error handling
 - You can't set an arbitrary size for the terminals with `ioctl`s - it would be better to use some pseudo terminal for this but then again, sometimes you specifically want `tty1` (imagine server crashing and having the kernel log imprinted on the e-ink)
