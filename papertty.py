@@ -493,10 +493,13 @@ def terminal(settings, vcsa, font, fontsize, noclear, nocursor, sleep, ttyrows, 
 
                     # read from the text buffer 
                     buff = vcsu.read()
+                    if character_width == 4:
+                        # work around weird bug
+                        buff = buff.replace(b'\x20\x20\x20\x20', b'\x20\x00\x00\x00')
                     # find character under cursor (in case using a non-fixed width font)
                     char_under_cursor = buff[character_width * (y * rows + x):character_width * (y * rows + x + 1)]
                     encoding = 'utf_32' if character_width == 4 else ptty.encoding
-                    cursor = (x, y, char_under_cursor.decode('utf_32', 'ignore'))
+                    cursor = (x, y, char_under_cursor.decode(encoding, 'ignore'))
                     # add newlines per column count
                     buff = ''.join([r.decode(encoding, 'replace') + '\n' for r in ptty.split(buff, cols * character_width)])
                     # do something only if content has changed or cursor was moved
