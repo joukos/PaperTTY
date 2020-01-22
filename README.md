@@ -1,5 +1,9 @@
 # PaperTTY
 
+## Unicode Update *(2020-01-22)*
+
+On systems with /dev/vcsu* (e.g. Raspbian Buster) and when using a TrueType font, the `terminal` mode now has full support for Unicode output. This is automatic, with a fallback to 8-bit if either of these requirements isn't met. We've also changed the standard encoding for 8-bit to ISO-8859-1, which should be a little closer to what the `vcs` device provides.
+
 ## IT8951 Update *(2019-11-03)*
 
 Support for IT8951 based displays kindly provided by @fimad has been merged. This means that Waveshare 6", 7.8", 9.7" and 10.3" may work since they use this controller. At least the 6" and 9.7" displays have been verified to work. A big thanks to everyone involved with the discussion and code contributions (https://github.com/joukos/PaperTTY/issues/25)!
