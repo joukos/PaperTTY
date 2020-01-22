@@ -2,7 +2,7 @@
 
 ## Unicode Update *(2020-01-22)*
 
-On systems with /dev/vcsu* (e.g. Raspbian Buster) and when using a TrueType font, the `terminal` mode now has full support for Unicode output. This is automatic, with a fallback to 8-bit if either of these requirements isn't met. We've also changed the standard encoding for 8-bit to ISO-8859-1, which should be a little closer to what the `vcs` device provides.
+On systems with /dev/vcsu* (e.g. Raspbian Stretch or Buster, with kernel 4.19+) and when using a TrueType font, the `terminal` mode now has full support for Unicode output. This is automatic, with a fallback to 8-bit if either of these requirements isn't met. We've also changed the standard encoding for 8-bit to ISO-8859-1, which should be a little closer to what the `vcs` device provides.
 
 ## IT8951 Optimization II *(2020-01-15)*
 
