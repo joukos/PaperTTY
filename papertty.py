@@ -137,9 +137,14 @@ class PaperTTY:
            ie. for /dev/vcsa1, retunr (4, "/dev/vcsu1") if vcsu is available, or
            (1, "/dev/vcs1") if not"""
         dev = vcsa.replace("vcsa", "vcsu")
-        if isinstance(self.font, ImageFont.FreeTypeFont) and os.path.exists(dev):
-            return 4, dev
+        if os.path.exists(dev):
+            if isinstance(self.font, ImageFont.FreeTypeFont):
+                return 4, dev
+            else:
+                print("Font {} doesn't support Unicode. Falling back to 8-bit encoding.".format(self.font.file))
+                return 1, vcsa.replace("vcsa", "vcs")
         else:
+            print("System does not have /dev/vcsu. Falling back to 8-bit encoding.")
             return 1, vcsa.replace("vcsa", "vcs")
 
     @staticmethod
