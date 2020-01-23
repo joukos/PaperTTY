@@ -66,11 +66,13 @@ class PaperTTY:
             self.font_width = self.font.getsize('M')[0]
             if 'getmetrics' in dir(self.font):
                 metrics_ascent, metrics_descent = self.font.getmetrics()
-                # Pillow docs say descent is negative, but that's not true.
+                # despite what the PIL docs say, ascent appears to be the
+                # height of the font, while descent is not, in fact, negative
                 self.font_height = metrics_ascent
             else:
-                # pil fonts don't seem to have metrics, so we do this hack
-                self.font_height = self.font.getsize('gh')[0]
+                # pil fonts don't seem to have metrics, but all
+                # characters seem to have the same height
+                self.font_height = self.font.getsize('a')[1]
         
         self.fontsize = fontsize
         self.partial = partial
@@ -98,21 +100,6 @@ class PaperTTY:
             except OSError:
                 print("TTY refused to resize (rows={}, cols={}), continuing anyway.".format(rows, cols))
                 print("Try setting a sane size manually.")
-
-    @staticmethod
-    def get_font_height(font, spacing=0):
-        """Calculate 'actual' height of a font"""
-        # check if font is a TrueType font
-        truetype = isinstance(font, ImageFont.FreeTypeFont)
-        # dirty trick to get "maximum height"
-        fh = font.getsize('hg')[1]
-        # get descent value
-        descent = font.getmetrics()[1] if truetype else 0
-        # the reported font size
-        size = font.size if truetype else fh
-        # Why descent/2? No idea, but it works "well enough" with
-        # big and small sizes
-        return size - (descent / 2) + spacing
 
     @staticmethod
     def band(bb):
@@ -216,7 +203,7 @@ class PaperTTY:
     def fit(self, portrait=False, spacing=0):
         """Return the maximum columns and rows we can display with this font"""
         width = self.font.getsize('M')[0]
-        height = self.get_font_height(self.font, spacing)
+        height = self.font_height
         # hacky, subtract just a bit to avoid going over the border with small fonts
         pw = self.driver.width - 3
         ph = self.driver.height
