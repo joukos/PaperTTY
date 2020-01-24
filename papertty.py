@@ -56,8 +56,9 @@ class PaperTTY:
     white = None
     black = None
     encoding = None
+    spacing = 0
 
-    def __init__(self, driver, font=defaultfont, fontsize=defaultsize, partial=None, encoding='utf-8'):
+    def __init__(self, driver, font=defaultfont, fontsize=defaultsize, partial=None, encoding='utf-8', spacing=0):
         """Create a PaperTTY with the chosen driver and settings"""
         self.driver = get_drivers()[driver]['class']()
         self.font = self.load_font(font, fontsize) if font else None
@@ -66,9 +67,10 @@ class PaperTTY:
             self.font_width = self.font.getsize('M')[0]
             if 'getmetrics' in dir(self.font):
                 metrics_ascent, metrics_descent = self.font.getmetrics()
+                self.spacing = int(spacing) if spacing != 'auto' else (metrics_descent - 2)
                 # despite what the PIL docs say, ascent appears to be the
                 # height of the font, while descent is not, in fact, negative
-                self.font_height = metrics_ascent
+                self.font_height = metrics_ascent + self.spacing
             else:
                 # pil fonts don't seem to have metrics, but all
                 # characters seem to have the same height
@@ -200,7 +202,7 @@ class PaperTTY:
         self.driver.init(partial=self.partial)
         self.initialized = True
 
-    def fit(self, portrait=False, spacing=0):
+    def fit(self, portrait=False):
         """Return the maximum columns and rows we can display with this font"""
         width = self.font.getsize('M')[0]
         height = self.font_height
@@ -258,7 +260,7 @@ class PaperTTY:
                 previous_vnc_image = new_vnc_image.copy()
                 time.sleep(float(sleep))
 
-    def showtext(self, text, fill, cursor=None, portrait=False, flipx=False, flipy=False, oldimage=None, spacing=0):
+    def showtext(self, text, fill, cursor=None, portrait=False, flipx=False, flipy=False, oldimage=None):
         """Draw a string on the screen"""
         if self.ready():
             # set order of h, w according to orientation
@@ -267,7 +269,7 @@ class PaperTTY:
                               self.white)
             # create the Draw object and draw the text
             draw = ImageDraw.Draw(image)
-            draw.text((0, 0), text, font=self.font, fill=fill, spacing=spacing)
+            draw.text((0, 0), text, font=self.font, fill=fill, spacing=self.spacing)
 
             # if we want a cursor, draw it - the most convoluted part
             if cursor:
@@ -278,11 +280,11 @@ class PaperTTY:
                 # desired cursor width
                 cur_width = fw - 1
                 # get font height
-                height = self.font_height + spacing
+                height = self.font_height
                 # starting X is the font width times current column
                 start_x = cur_x * fw
                 # add 1 because rows start at 0 and we want the cursor at the bottom
-                start_y = (cur_y + 1) * height - 1 - spacing
+                start_y = (cur_y + 1) * height - 1 - self.spacing
                 # draw the cursor line
                 draw.line((start_x, start_y, start_x + cur_width, start_y), fill=self.black)
             # rotate image if using landscape
@@ -387,12 +389,13 @@ def scrub(settings, size):
 @click.option('--width', default=None, help='Fit to width [default: display width / font width]')
 @click.option('--portrait', default=False, is_flag=True, help='Use portrait orientation', show_default=True)
 @click.option('--nofold', default=False, is_flag=True, help="Don't fold the input", show_default=True)
-@click.option('--spacing', default=0, help='Line spacing for the text', show_default=True)
+@click.option('--spacing', default='0', help='Line spacing for the text, "auto" to automatically determine a good value', show_default=True)
 @click.pass_obj
 def stdin(settings, font, fontsize, width, portrait, nofold, spacing):
     """Display standard input and leave it on screen"""
     settings.args['font'] = font
     settings.args['fontsize'] = fontsize
+    settings.args['spacing'] = spacing
     ptty = settings.get_init_tty()
     text = sys.stdin.read()
     if not nofold:
@@ -402,7 +405,7 @@ def stdin(settings, font, fontsize, width, portrait, nofold, spacing):
             font_width = ptty.font.getsize('M')[0]
             max_width = int((ptty.driver.width - 8) / font_width) if portrait else int(ptty.driver.height / font_width)
             text = ptty.fold(text, width=max_width)
-    ptty.showtext(text, fill=ptty.driver.black, portrait=portrait, spacing=spacing)
+    ptty.showtext(text, fill=ptty.driver.black, portrait=portrait)
 
 
 @click.command()
@@ -431,7 +434,7 @@ def vnc(settings, host, display, password, rotate, invert, sleep, fullevery):
 @click.option('--portrait', default=False, is_flag=True, help='Use portrait orientation', show_default=False)
 @click.option('--flipx', default=False, is_flag=True, help='Flip X axis (EXPERIMENTAL/BROKEN)', show_default=False)
 @click.option('--flipy', default=False, is_flag=True, help='Flip Y axis (EXPERIMENTAL/BROKEN)', show_default=False)
-@click.option('--spacing', default=0, help='Line spacing for the text', show_default=True)
+@click.option('--spacing', default='0', help='Line spacing for the text, "auto" to automatically determine a good value', show_default=True)
 @click.option('--scrub', 'apply_scrub', is_flag=True, default=False, help='Apply scrub when starting up',
               show_default=True)
 @click.option('--autofit', is_flag=True, default=False, help='Autofit terminal size to font size', show_default=True)
@@ -441,6 +444,7 @@ def terminal(settings, vcsa, font, fontsize, noclear, nocursor, sleep, ttyrows, 
     """Display virtual console on an e-Paper display, exit with Ctrl-C."""
     settings.args['font'] = font
     settings.args['fontsize'] = fontsize
+    settings.args['spacing'] = spacing
     ptty = settings.get_init_tty()
 
     if apply_scrub:
@@ -467,7 +471,7 @@ def terminal(settings, vcsa, font, fontsize, noclear, nocursor, sleep, ttyrows, 
     signal.signal(signal.SIGUSR1, sigusr1_handler)
 
     # group the various params for readability
-    textargs = {'portrait': portrait, 'flipx': flipx, 'flipy': flipy, 'spacing': spacing}
+    textargs = {'portrait': portrait, 'flipx': flipx, 'flipy': flipy}
 
     if any([ttyrows, ttycols]) and not all([ttyrows, ttycols]):
         ptty.error("You must define both --rows and --cols to change terminal size.")
@@ -477,7 +481,7 @@ def terminal(settings, vcsa, font, fontsize, noclear, nocursor, sleep, ttyrows, 
         else:
             # if size not specified manually, see if autofit was requested
             if autofit:
-                max_dim = ptty.fit(portrait, spacing)
+                max_dim = ptty.fit(portrait)
                 print("Automatic resize of TTY to {} rows, {} columns".format(max_dim[1], max_dim[0]))
                 ptty.set_tty_size(ptty.ttydev(vcsa), max_dim[1], max_dim[0])
         print("Started displaying {}, minimum update interval {} s, exit with Ctrl-C".format(vcsa, sleep))
