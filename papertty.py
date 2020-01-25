@@ -239,7 +239,7 @@ class PaperTTY:
         cur_x, cur_y = cursor[0], cursor[1]
         # get the width of the character under cursor
         # (in case we didn't use a fixed width font...)
-        width = self.font.getsize(cursor[2])[0]
+        width = self.font_width
         # get font height
         height = self.font_height
         upper_left = (cur_x * width, cur_y * height)
