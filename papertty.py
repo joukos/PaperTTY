@@ -57,8 +57,9 @@ class PaperTTY:
     black = None
     encoding = None
     spacing = 0
+    cursor = None
 
-    def __init__(self, driver, font=defaultfont, fontsize=defaultsize, partial=None, encoding='utf-8', spacing=0):
+    def __init__(self, driver, font=defaultfont, fontsize=defaultsize, partial=None, encoding='utf-8', spacing=0, cursor=None):
         """Create a PaperTTY with the chosen driver and settings"""
         self.driver = get_drivers()[driver]['class']()
         self.font = self.load_font(font, fontsize) if font else None
@@ -68,19 +69,23 @@ class PaperTTY:
             if 'getmetrics' in dir(self.font):
                 metrics_ascent, metrics_descent = self.font.getmetrics()
                 self.spacing = int(spacing) if spacing != 'auto' else (metrics_descent - 2)
+                print('Setting spacing to {}.'.format(self.spacing))
                 # despite what the PIL docs say, ascent appears to be the
                 # height of the font, while descent is not, in fact, negative
                 self.font_height = metrics_ascent + self.spacing
             else:
+                # No autospacing for pil fonts, but they usually don't need it.
+                self.spacing = int(spacing) if spacing != 'auto' else 0
                 # pil fonts don't seem to have metrics, but all
                 # characters seem to have the same height
-                self.font_height = self.font.getsize('a')[1]
+                self.font_height = self.font.getsize('a')[1] + self.spacing
         
         self.fontsize = fontsize
         self.partial = partial
         self.white = self.driver.white
         self.black = self.driver.black
         self.encoding = encoding
+        self.cursor = cursor
 
     def ready(self):
         """Check that the driver is loaded and initialized"""
@@ -211,6 +216,39 @@ class PaperTTY:
         ph = self.driver.height
         return int((pw if portrait else ph) / width), int((ph if portrait else pw) / height)
 
+    def draw_line_cursor(self, cursor, draw):
+        cur_x, cur_y = cursor[0], cursor[1]
+        # get the width of the character under cursor
+        # (in case we didn't use a fixed width font...)
+        width = self.font.getsize(cursor[2])[0]
+        # desired cursor width
+        cur_width = width - 1
+        # get font height
+        height = self.font_height
+        # starting X is the font width times current column
+        start_x = cur_x * width
+        offset = 0
+        if self.cursor != 'default': # only default and a number are valid in this context
+            offset = int(self.cursor)
+        # add 1 because rows start at 0 and we want the cursor at the bottom
+        start_y = (cur_y + 1) * height - 1 - offset
+        # draw the cursor line
+        draw.line((start_x, start_y, start_x + cur_width, start_y), fill=self.black)
+
+    def draw_block_cursor(self, cursor, image):
+        cur_x, cur_y = cursor[0], cursor[1]
+        # get the width of the character under cursor
+        # (in case we didn't use a fixed width font...)
+        width = self.font.getsize(cursor[2])[0]
+        # get font height
+        height = self.font_height
+        upper_left = (cur_x * width, cur_y * height)
+        lower_right = ((cur_x + 1) * width, (cur_y + 1) * height)
+        mask = Image.new('1', (image.width, image.height), self.black)
+        draw = ImageDraw.Draw(mask)
+        draw.rectangle([upper_left, lower_right], fill=self.white)
+        return ImageChops.logical_xor(image, mask)
+    
     def showvnc(self, host, display, password=None, rotate=None, invert=False, sleep=1, full_interval=100):
         with api.connect(':'.join([host, display]), password=password) as client:
             previous_vnc_image = None
@@ -272,21 +310,11 @@ class PaperTTY:
             draw.text((0, 0), text, font=self.font, fill=fill, spacing=self.spacing)
 
             # if we want a cursor, draw it - the most convoluted part
-            if cursor:
-                cur_x, cur_y = cursor[0], cursor[1]
-                # get the width of the character under cursor
-                # (in case we didn't use a fixed width font...)
-                fw = self.font.getsize(cursor[2])[0]
-                # desired cursor width
-                cur_width = fw - 1
-                # get font height
-                height = self.font_height
-                # starting X is the font width times current column
-                start_x = cur_x * fw
-                # add 1 because rows start at 0 and we want the cursor at the bottom
-                start_y = (cur_y + 1) * height - 1 - self.spacing
-                # draw the cursor line
-                draw.line((start_x, start_y, start_x + cur_width, start_y), fill=self.black)
+            if cursor and self.cursor:
+                if self.cursor == 'block':
+                    image = self.draw_block_cursor(cursor, image)
+                else:
+                    self.draw_line_cursor(cursor, draw)
             # rotate image if using landscape
             if not portrait:
                 image = image.rotate(90, expand=True)
@@ -427,7 +455,8 @@ def vnc(settings, host, display, password, rotate, invert, sleep, fullevery):
 @click.option('--font', default=PaperTTY.defaultfont, help='Path to a TrueType or PIL font', show_default=True)
 @click.option('--size', 'fontsize', default=8, help='Font size', show_default=True)
 @click.option('--noclear', default=False, is_flag=True, help='Leave display content on exit')
-@click.option('--nocursor', default=False, is_flag=True, help="Don't draw the cursor")
+@click.option('--nocursor', default=False, is_flag=True, help="(DEPRECATED, use --cursor=none instead) Don't draw the cursor")
+@click.option('--cursor', default='legacy', help='Set cursor type. Valid values are default (underscore cursor at a sensible place), block (inverts colors at cursor), none (draws no cursor) or a number n (underscore cursor n pixels from the bottom)', show_default=False)
 @click.option('--sleep', default=0.1, help='Minimum sleep between refreshes', show_default=True)
 @click.option('--rows', 'ttyrows', default=None, help='Set TTY rows (--cols required too)')
 @click.option('--cols', 'ttycols', default=None, help='Set TTY columns (--rows required too)')
@@ -438,13 +467,30 @@ def vnc(settings, host, display, password, rotate, invert, sleep, fullevery):
 @click.option('--scrub', 'apply_scrub', is_flag=True, default=False, help='Apply scrub when starting up',
               show_default=True)
 @click.option('--autofit', is_flag=True, default=False, help='Autofit terminal size to font size', show_default=True)
+@click.option('--attributes', is_flag=True, default=False, help='Use attributes', show_default=True)
 @click.pass_obj
-def terminal(settings, vcsa, font, fontsize, noclear, nocursor, sleep, ttyrows, ttycols, portrait, flipx, flipy,
-             spacing, apply_scrub, autofit):
+def terminal(settings, vcsa, font, fontsize, noclear, nocursor, cursor, sleep, ttyrows, ttycols, portrait, flipx, flipy,
+             spacing, apply_scrub, autofit, attributes):
     """Display virtual console on an e-Paper display, exit with Ctrl-C."""
     settings.args['font'] = font
     settings.args['fontsize'] = fontsize
     settings.args['spacing'] = spacing
+
+    if cursor != 'legacy' and nocursor:
+        print("--cursor and --nocursor can't be used together. To hide the cursor, use --cursor=none")
+        sys.exit(1)
+
+    if nocursor:
+        print("--nocursor is deprectated. Use --cursor=none instead")
+        settings.args['cursor'] = None
+
+    if cursor == 'default' or cursor == 'legacy':
+        settings.args['cursor'] = 'default'
+    elif cursor == 'none':
+        settings.args['cursor'] = None
+    else:
+        settings.args['cursor'] = cursor
+
     ptty = settings.get_init_tty()
 
     if apply_scrub:
