@@ -218,8 +218,6 @@ class PaperTTY:
 
     def draw_line_cursor(self, cursor, draw):
         cur_x, cur_y = cursor[0], cursor[1]
-        # get the width of the character under cursor
-        # (in case we didn't use a fixed width font...)
         width = self.font_width
         # desired cursor width
         cur_width = width - 1
@@ -237,8 +235,6 @@ class PaperTTY:
 
     def draw_block_cursor(self, cursor, image):
         cur_x, cur_y = cursor[0], cursor[1]
-        # get the width of the character under cursor
-        # (in case we didn't use a fixed width font...)
         width = self.font_width
         # get font height
         height = self.font_height
