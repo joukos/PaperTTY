@@ -220,7 +220,7 @@ class PaperTTY:
         cur_x, cur_y = cursor[0], cursor[1]
         # get the width of the character under cursor
         # (in case we didn't use a fixed width font...)
-        width = self.font.getsize(cursor[2])[0]
+        width = self.font_width
         # desired cursor width
         cur_width = width - 1
         # get font height
