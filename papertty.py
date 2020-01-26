@@ -64,14 +64,16 @@ class PaperTTY:
         self.driver = get_drivers()[driver]['class']()
         self.font = self.load_font(font, fontsize) if font else None
         if self.font:
-            # get physical dimensions of font
-            self.font_width = self.font.getsize('M')[0]
+            # get physical dimensions of font. Take the average width of
+            # 1000 M's because oblique fonts a complicated.
+            self.font_width = self.font.getsize('M' * 1000)[0] // 1000
             if 'getmetrics' in dir(self.font):
                 metrics_ascent, metrics_descent = self.font.getmetrics()
                 self.spacing = int(spacing) if spacing != 'auto' else (metrics_descent - 2)
                 print('Setting spacing to {}.'.format(self.spacing))
                 # despite what the PIL docs say, ascent appears to be the
-                # height of the font, while descent is not, in fact, negative
+                # height of the font, while descent is not, in fact, negative.
+                # Couuld use testing with more fonts.
                 self.font_height = metrics_ascent + self.spacing
             else:
                 # No autospacing for pil fonts, but they usually don't need it.
