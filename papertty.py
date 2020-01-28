@@ -28,6 +28,7 @@ import signal
 import struct
 # for stdin and exit
 import sys
+import select
 # for setting TTY size
 import termios
 # for sleeping
@@ -62,25 +63,8 @@ class PaperTTY:
     def __init__(self, driver, font=defaultfont, fontsize=defaultsize, partial=None, encoding='utf-8', spacing=0, cursor=None):
         """Create a PaperTTY with the chosen driver and settings"""
         self.driver = get_drivers()[driver]['class']()
+        self.spacing = spacing
         self.font = self.load_font(font, fontsize) if font else None
-        if self.font:
-            # get physical dimensions of font. Take the average width of
-            # 1000 M's because oblique fonts a complicated.
-            self.font_width = self.font.getsize('M' * 1000)[0] // 1000
-            if 'getmetrics' in dir(self.font):
-                metrics_ascent, metrics_descent = self.font.getmetrics()
-                self.spacing = int(spacing) if spacing != 'auto' else (metrics_descent - 2)
-                print('Setting spacing to {}.'.format(self.spacing))
-                # despite what the PIL docs say, ascent appears to be the
-                # height of the font, while descent is not, in fact, negative.
-                # Couuld use testing with more fonts.
-                self.font_height = metrics_ascent + self.spacing
-            else:
-                # No autospacing for pil fonts, but they usually don't need it.
-                self.spacing = int(spacing) if spacing != 'auto' else 0
-                # pil fonts don't seem to have metrics, but all
-                # characters seem to have the same height
-                self.font_height = self.font.getsize('a')[1] + self.spacing
         
         self.fontsize = fontsize
         self.partial = partial
@@ -184,9 +168,11 @@ class PaperTTY:
             print("No write access to {} so cannot set terminal size, maybe run with sudo?".format(tty))
         return True
 
-    def load_font(self, path, size):
+    def load_font(self, path, size=None):
         """Load the PIL or TrueType font"""
         font = None
+        if not size:
+            size = self.fontsize
         if os.path.isfile(path):
             try:
                 # first check if the font looks like a PILfont
@@ -201,6 +187,25 @@ class PaperTTY:
         else:
             print("The font '{}' could not be found, using fallback font instead.".format(path))
             font = ImageFont.load_default()
+
+        if font:
+            # get physical dimensions of font. Take the average width of
+            # 1000 M's because oblique fonts a complicated.
+            self.font_width = font.getsize('M' * 1000)[0] // 1000
+            if 'getmetrics' in dir(font):
+                metrics_ascent, metrics_descent = font.getmetrics()
+                self.spacing = int(self.spacing) if self.spacing != 'auto' else (metrics_descent - 2)
+                print('Setting spacing to {}.'.format(self.spacing))
+                # despite what the PIL docs say, ascent appears to be the
+                # height of the font, while descent is not, in fact, negative.
+                # Couuld use testing with more fonts.
+                self.font_height = metrics_ascent + self.spacing
+            else:
+                # No autospacing for pil fonts, but they usually don't need it.
+                self.spacing = int(self.spacing) if self.spacing != 'auto' else 0
+                # pil fonts don't seem to have metrics, but all
+                # characters seem to have the same height
+                self.font_height = font.getsize('a')[1] + self.spacing
 
         return font
 
@@ -466,9 +471,10 @@ def vnc(settings, host, display, password, rotate, invert, sleep, fullevery):
               show_default=True)
 @click.option('--autofit', is_flag=True, default=False, help='Autofit terminal size to font size', show_default=True)
 @click.option('--attributes', is_flag=True, default=False, help='Use attributes', show_default=True)
+@click.option('--interactive', is_flag=True, default=False, help='Interactive mode')
 @click.pass_obj
 def terminal(settings, vcsa, font, fontsize, noclear, nocursor, cursor, sleep, ttyrows, ttycols, portrait, flipx, flipy,
-             spacing, apply_scrub, autofit, attributes):
+             spacing, apply_scrub, autofit, attributes, interactive):
     """Display virtual console on an e-Paper display, exit with Ctrl-C."""
     settings.args['font'] = font
     settings.args['fontsize'] = fontsize
@@ -501,10 +507,27 @@ def terminal(settings, vcsa, font, fontsize, noclear, nocursor, cursor, sleep, t
 
     # handle SIGINT from `systemctl stop` and Ctrl-C
     def sigint_handler(sig, frame):
-        print("Exiting (SIGINT)...")
-        if not noclear:
-            ptty.showtext(oldbuff, fill=ptty.white, **textargs)
-        sys.exit(0)
+        if not interactive:
+            print("Exiting (SIGINT)...")
+            if not noclear:
+                ptty.showtext(oldbuff, fill=ptty.white, **textargs)
+            sys.exit(0)
+
+        print('Enter')
+        print('\tf) to change font')
+        print('\tx) to x')
+
+        ch = sys.stdin.readline().strip()
+        if ch == 'x':
+            print("Exiting (SIGINT)...")
+            if not noclear:
+                ptty.showtext(oldbuff, fill=ptty.white, **textargs)
+            sys.exit(0)
+        if ch == 'f':
+            print('Enter new font:')
+            font_name = sys.stdin.readline().strip()
+            ptty.font = ptty.load_font(font_name)
+            oldimage = None
 
     # toggle scrub flag when SIGUSR1 received
     def sigusr1_handler(sig, frame):
@@ -538,6 +561,7 @@ def terminal(settings, vcsa, font, fontsize, noclear, nocursor, cursor, sleep, t
                 oldimage = None
                 oldbuff = ''
                 flags['scrub_requested'] = False
+
             with open(vcsa, 'rb') as f:
                 with open(vcsudev, 'rb') as vcsu:
                     # read the first 4 bytes to get the console attributes
