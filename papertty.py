@@ -59,6 +59,8 @@ class PaperTTY:
     encoding = None
     spacing = 0
     cursor = None
+    rows = None
+    cols = None
 
     def __init__(self, driver, font=defaultfont, fontsize=defaultsize, partial=None, encoding='utf-8', spacing=0, cursor=None):
         """Create a PaperTTY with the chosen driver and settings"""
@@ -83,9 +85,10 @@ class PaperTTY:
         print(msg)
         sys.exit(code)
 
-    @staticmethod
-    def set_tty_size(tty, rows, cols):
+    def set_tty_size(self, tty, rows, cols):
         """Set a TTY (/dev/tty*) to a certain size. Must be a real TTY that support ioctls."""
+        self.rows = rows
+        self.cols = cols
         with open(tty, 'w') as tty:
             size = struct.pack("HHHH", int(rows), int(cols), 0, 0)
             try:
@@ -503,7 +506,7 @@ def terminal(settings, vcsa, font, fontsize, noclear, nocursor, cursor, sleep, t
     oldimage = None
     oldcursor = None
     # dirty - should refactor to make this cleaner
-    flags = {'scrub_requested': False}
+    flags = {'scrub_requested': False, 'force_redraw': False}
 
     # handle SIGINT from `systemctl stop` and Ctrl-C
     def sigint_handler(sig, frame):
@@ -514,20 +517,25 @@ def terminal(settings, vcsa, font, fontsize, noclear, nocursor, cursor, sleep, t
             sys.exit(0)
 
         print('Enter')
-        print('\tf) to change font')
-        print('\tx) to x')
+        print('\t(f) to change font')
+        print('\t(x) to exit')
+        print('\tanything else to continue.')
 
         ch = sys.stdin.readline().strip()
         if ch == 'x':
-            print("Exiting (SIGINT)...")
             if not noclear:
                 ptty.showtext(oldbuff, fill=ptty.white, **textargs)
             sys.exit(0)
         if ch == 'f':
             print('Enter new font:')
             font_name = sys.stdin.readline().strip()
+            ptty.spacing = spacing
             ptty.font = ptty.load_font(font_name)
-            oldimage = None
+            if autofit:
+                max_dim = ptty.fit(portrait)
+                print("Automatic resize of TTY to {} rows, {} columns".format(max_dim[1], max_dim[0]))
+                ptty.set_tty_size(ptty.ttydev(vcsa), max_dim[1], max_dim[0])
+            flags['force_redraw'] = True
 
     # toggle scrub flag when SIGUSR1 received
     def sigusr1_handler(sig, frame):
@@ -580,7 +588,7 @@ def terminal(settings, vcsa, font, fontsize, noclear, nocursor, cursor, sleep, t
                     # add newlines per column count
                     buff = ''.join([r.decode(encoding, 'replace') + '\n' for r in ptty.split(buff, cols * character_width)])
                     # do something only if content has changed or cursor was moved
-                    if buff != oldbuff or cursor != oldcursor:
+                    if flags['force_redraw'] or buff != oldbuff or cursor != oldcursor:
                         # show new content
                         oldimage = ptty.showtext(buff, fill=ptty.black, cursor=cursor if not nocursor else None,
                                                 oldimage=oldimage,
