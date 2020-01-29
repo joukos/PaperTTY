@@ -212,6 +212,26 @@ class PaperTTY:
 
         return font
 
+    def recalculate_font(self):
+        """Load the PIL or TrueType font"""
+        # get physical dimensions of font. Take the average width of
+        # 1000 M's because oblique fonts a complicated.
+        self.font_width = self.font.getsize('M' * 1000)[0] // 1000
+        if 'getmetrics' in dir(self.font):
+            metrics_ascent, metrics_descent = self.font.getmetrics()
+            self.spacing = int(self.spacing) if self.spacing != 'auto' else (metrics_descent - 2)
+            print('Setting spacing to {}.'.format(self.spacing))
+            # despite what the PIL docs say, ascent appears to be the
+            # height of the font, while descent is not, in fact, negative.
+            # Couuld use testing with more fonts.
+            self.font_height = metrics_ascent + self.spacing
+        else:
+            # No autospacing for pil fonts, but they usually don't need it.
+            self.spacing = int(self.spacing) if self.spacing != 'auto' else 0
+            # pil fonts don't seem to have metrics, but all
+            # characters seem to have the same height
+            self.font_height = self.font.getsize('a')[1] + self.spacing
+
     def init_display(self):
         """Initialize the display - call the driver's init method"""
         self.driver.init(partial=self.partial)
@@ -518,6 +538,7 @@ def terminal(settings, vcsa, font, fontsize, noclear, nocursor, cursor, sleep, t
 
         print('Enter')
         print('\t(f) to change font')
+        print('\t(s) to change spacing')
         print('\t(x) to exit')
         print('\tanything else to continue.')
 
@@ -526,13 +547,29 @@ def terminal(settings, vcsa, font, fontsize, noclear, nocursor, cursor, sleep, t
             if not noclear:
                 ptty.showtext(oldbuff, fill=ptty.white, **textargs)
             sys.exit(0)
-        if ch == 'f':
+        elif ch == 'f':
             print('Current font: {}'.format(ptty.font))
             print('Enter new font (leave empty to abort):')
             font_name = sys.stdin.readline().strip()
             if font_name:
                 ptty.spacing = spacing
                 ptty.font = ptty.load_font(font_name)
+                if autofit:
+                    max_dim = ptty.fit(portrait)
+                    print("Automatic resize of TTY to {} rows, {} columns".format(max_dim[1], max_dim[0]))
+                    ptty.set_tty_size(ptty.ttydev(vcsa), max_dim[1], max_dim[0])
+                flags['force_redraw'] = True
+        elif ch == 's':
+            print('Current spacing: {}'.format(ptty.spacing))
+            print('Enter new spacing (leave empty to abort):')
+            new_spacing = None
+            try:
+                new_spacing = int(sys.stdin.readline().strip())
+            except:
+                pass
+            if new_spacing or new_spacing == 0:
+                ptty.spacing = new_spacing
+                ptty.recalculate_font()
                 if autofit:
                     max_dim = ptty.fit(portrait)
                     print("Automatic resize of TTY to {} rows, {} columns".format(max_dim[1], max_dim[0]))
