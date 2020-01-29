@@ -527,7 +527,7 @@ def terminal(settings, vcsa, font, fontsize, noclear, nocursor, cursor, sleep, t
     oldcursor = None
     # dirty - should refactor to make this cleaner
     flags = {'scrub_requested': False, 'force_redraw': False}
-
+    
     # handle SIGINT from `systemctl stop` and Ctrl-C
     def sigint_handler(sig, frame):
         if not interactive:
@@ -536,11 +536,11 @@ def terminal(settings, vcsa, font, fontsize, noclear, nocursor, cursor, sleep, t
                 ptty.showtext(oldbuff, fill=ptty.white, **textargs)
             sys.exit(0)
 
-        print('Enter')
-        print('\t(f) to change font')
-        print('\t(s) to change spacing')
-        print('\t(x) to exit')
-        print('\tanything else to continue.')
+        print('Rendering paused. Enter')
+        print('    (f) to change font,')
+        print('    (s) to change spacing,')
+        print('    (x) to exit,')
+        print('    anything else to continue.')
 
         ch = sys.stdin.readline().strip()
         if ch == 'x':
@@ -598,7 +598,10 @@ def terminal(settings, vcsa, font, fontsize, noclear, nocursor, cursor, sleep, t
                 max_dim = ptty.fit(portrait)
                 print("Automatic resize of TTY to {} rows, {} columns".format(max_dim[1], max_dim[0]))
                 ptty.set_tty_size(ptty.ttydev(vcsa), max_dim[1], max_dim[0])
-        print("Started displaying {}, minimum update interval {} s, exit with Ctrl-C".format(vcsa, sleep))
+        if interactive:
+            print("Started displaying {}, minimum update interval {} s, open menu with Ctrl-C".format(vcsa, sleep))
+        else:
+            print("Started displaying {}, minimum update interval {} s, exit with Ctrl-C".format(vcsa, sleep))
         character_width, vcsudev = ptty.vcsudev(vcsa)
         while True:
             # if SIGUSR1 toggled the scrub flag, scrub display and start with a fresh image
