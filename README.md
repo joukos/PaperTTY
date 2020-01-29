@@ -1,5 +1,9 @@
 # PaperTTY
 
+## Cursor Update *(2020-01-25)*
+
+The `terminal` mode now supports different cursors. `--nocursor` had been deprecated in favor of `--cursor=none`. The usual underscore-like cursor is set via `--cursor=default`, which, as the name suggests, is also the default mode. There is also a `--cursor=block` option, which inverts the colors at the cursor's location. Finally, there is also an option to provide a numerical value, e.g. `--cursor=5`, which draws an underscore cursor shifted 5 pixels towards the top; `--cursor=default` and `--cursor=0` are thus equivalent.
+
 ## Unicode Update *(2020-01-22)*
 
 On systems with /dev/vcsu* (e.g. Raspbian Stretch or Buster, with kernel 4.19+) and when using a TrueType font, the `terminal` mode now has full support for Unicode output. This is automatic, with a fallback to 8-bit if either of these requirements isn't met. We've also changed the standard encoding for 8-bit to ISO-8859-1, which should be a little closer to what the `vcs` device provides.

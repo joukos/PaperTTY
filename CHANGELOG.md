@@ -1,5 +1,9 @@
 # Changelog
 
+- **2020-01-25**
+  - Added support for more cursors.
+- **2020-01-22**
+  - Added Unicode support for systems providing /dev/vcsu
 - **2019-12-07**
   - Added basic support for EPD7in5v2 (GDEW075T7)
 - **2019-11-03**
