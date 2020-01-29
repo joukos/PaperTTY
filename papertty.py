@@ -527,15 +527,17 @@ def terminal(settings, vcsa, font, fontsize, noclear, nocursor, cursor, sleep, t
                 ptty.showtext(oldbuff, fill=ptty.white, **textargs)
             sys.exit(0)
         if ch == 'f':
-            print('Enter new font:')
+            print('Current font: {}'.format(ptty.font))
+            print('Enter new font (leave empty to abort):')
             font_name = sys.stdin.readline().strip()
-            ptty.spacing = spacing
-            ptty.font = ptty.load_font(font_name)
-            if autofit:
-                max_dim = ptty.fit(portrait)
-                print("Automatic resize of TTY to {} rows, {} columns".format(max_dim[1], max_dim[0]))
-                ptty.set_tty_size(ptty.ttydev(vcsa), max_dim[1], max_dim[0])
-            flags['force_redraw'] = True
+            if font_name:
+                ptty.spacing = spacing
+                ptty.font = ptty.load_font(font_name)
+                if autofit:
+                    max_dim = ptty.fit(portrait)
+                    print("Automatic resize of TTY to {} rows, {} columns".format(max_dim[1], max_dim[0]))
+                    ptty.set_tty_size(ptty.ttydev(vcsa), max_dim[1], max_dim[0])
+                flags['force_redraw'] = True
 
     # toggle scrub flag when SIGUSR1 received
     def sigusr1_handler(sig, frame):
