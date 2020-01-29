@@ -61,14 +61,15 @@ class PaperTTY:
     cursor = None
     rows = None
     cols = None
+    is_truetype = None
+    fontfile = None
 
     def __init__(self, driver, font=defaultfont, fontsize=defaultsize, partial=None, encoding='utf-8', spacing=0, cursor=None):
         """Create a PaperTTY with the chosen driver and settings"""
         self.driver = get_drivers()[driver]['class']()
         self.spacing = spacing
-        self.font = self.load_font(font, fontsize) if font else None
-        
         self.fontsize = fontsize
+        self.font = self.load_font(font) if font else None
         self.partial = partial
         self.white = self.driver.white
         self.black = self.driver.black
@@ -171,29 +172,36 @@ class PaperTTY:
             print("No write access to {} so cannot set terminal size, maybe run with sudo?".format(tty))
         return True
 
-    def load_font(self, path, size=None):
+    def load_font(self, path, keep_if_not_found=False):
         """Load the PIL or TrueType font"""
         font = None
-        if not size:
-            size = self.fontsize
+        # If no path is given, reuse existing font path. Good for resizing.
+        path = path or self.fontfile
         if os.path.isfile(path):
             try:
                 # first check if the font looks like a PILfont
                 with open(path, 'rb') as f:
                     if f.readline() == b"PILfont\n":
+                        self.is_truetype = False
+                        print('Loading PIL font {}. Font size is ignored.'.format(path))
                         font = ImageFont.load(path)
                         # otherwise assume it's a TrueType font
                     else:
-                        font = ImageFont.truetype(path, size)
+                        self.is_truetype = True
+                        font = ImageFont.truetype(path, self.fontsize)
+                    self.fontfile = path
             except IOError:
                 self.error("Invalid font: '{}'".format(path))
+        elif keep_if_not_found:
+            print("The font '{}' could not be found, keep using old font.".format(path))
+            font = self.font
         else:
             print("The font '{}' could not be found, using fallback font instead.".format(path))
             font = ImageFont.load_default()
 
         if font:
             # get physical dimensions of font. Take the average width of
-            # 1000 M's because oblique fonts a complicated.
+            # 1000 M's because oblique fonts are complicated.
             self.font_width = font.getsize('M' * 1000)[0] // 1000
             if 'getmetrics' in dir(font):
                 metrics_ascent, metrics_descent = font.getmetrics()
@@ -536,9 +544,12 @@ def terminal(settings, vcsa, font, fontsize, noclear, nocursor, cursor, sleep, t
                 ptty.showtext(oldbuff, fill=ptty.white, **textargs)
             sys.exit(0)
 
+        print()
         print('Rendering paused. Enter')
         print('    (f) to change font,')
         print('    (s) to change spacing,')
+        if ptty.is_truetype:
+            print('    (h) to change font size,')
         print('    (x) to exit,')
         print('    anything else to continue.')
 
@@ -553,7 +564,7 @@ def terminal(settings, vcsa, font, fontsize, noclear, nocursor, cursor, sleep, t
             font_name = sys.stdin.readline().strip()
             if font_name:
                 ptty.spacing = spacing
-                ptty.font = ptty.load_font(font_name)
+                ptty.font = ptty.load_font(font_name, keep_if_not_found=True)
                 if autofit:
                     max_dim = ptty.fit(portrait)
                     print("Automatic resize of TTY to {} rows, {} columns".format(max_dim[1], max_dim[0]))
@@ -570,6 +581,23 @@ def terminal(settings, vcsa, font, fontsize, noclear, nocursor, cursor, sleep, t
             if new_spacing or new_spacing == 0:
                 ptty.spacing = new_spacing
                 ptty.recalculate_font()
+                if autofit:
+                    max_dim = ptty.fit(portrait)
+                    print("Automatic resize of TTY to {} rows, {} columns".format(max_dim[1], max_dim[0]))
+                    ptty.set_tty_size(ptty.ttydev(vcsa), max_dim[1], max_dim[0])
+                flags['force_redraw'] = True
+        elif ch == 'h' and ptty.is_truetype:
+            print('Current font size: {}'.format(ptty.fontsize))
+            print('Enter new font size (leave empty to abort):')
+            new_fontsize = None
+            try:
+                new_fontsize = int(sys.stdin.readline().strip())
+            except:
+                pass
+            if new_fontsize:
+                ptty.fontsize = new_fontsize
+                ptty.spacing = spacing
+                ptty.font = ptty.load_font(path=None)
                 if autofit:
                     max_dim = ptty.fit(portrait)
                     print("Automatic resize of TTY to {} rows, {} columns".format(max_dim[1], max_dim[0]))
