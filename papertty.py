@@ -559,7 +559,7 @@ def terminal(settings, vcsa, font, fontsize, noclear, nocursor, cursor, sleep, t
                 ptty.showtext(oldbuff, fill=ptty.white, **textargs)
             sys.exit(0)
         elif ch == 'f':
-            print('Current font: {}'.format(ptty.font))
+            print('Current font: {}'.format(ptty.fontfile))
             print('Enter new font (leave empty to abort):')
             font_name = sys.stdin.readline().strip()
             if font_name:
