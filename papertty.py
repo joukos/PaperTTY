@@ -552,6 +552,7 @@ def terminal(settings, vcsa, font, fontsize, noclear, nocursor, cursor, sleep, t
             print('    (h) to change font size,')
         print('    (x) to exit,')
         print('    anything else to continue.')
+        print('Use --font {} --size {} --spacing {} for the current setting.'.format(ptty.fontfile, ptty.fontsize, ptty.spacing))
 
         ch = sys.stdin.readline().strip()
         if ch == 'x':
