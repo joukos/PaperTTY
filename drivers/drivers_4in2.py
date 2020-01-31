@@ -51,8 +51,9 @@ class EPD4in2(drivers_partial.WavesharePartial,
     # TODO: universal?
     def set_setting(self, command, data):
         self.send_command(command)
-        for d in data:
-            self.send_data(d)
+        self.send_data(data)
+        # for d in data:
+        #     self.send_data(d)
 
     # TODO: universal?
     def set_resolution(self):
@@ -79,7 +80,10 @@ class EPD4in2(drivers_partial.WavesharePartial,
     def send_data(self, data):
         self.digital_write(self.DC_PIN, GPIO.HIGH)
         self.digital_write(self.CS_PIN, GPIO.LOW)
-        self.spi_transfer([data])
+        if type(data) == list:
+            self.spi_transfer(data)
+        else:
+            self.spi_transfer([data])
         self.digital_write(self.CS_PIN, GPIO.HIGH)
 
     def wait_until_idle(self):
@@ -351,8 +355,14 @@ class EPD4in2(drivers_partial.WavesharePartial,
                 else:
                     self.frame_buffer[idiv + idxj] &= ~mask
 
+    # def scrub(self, fillsize=16):
+    #     """Scrub display - only works properly with partial refresh"""
+    #     self.fill(self.black, fillsize=fillsize)
+    #     self.fill(self.white, fillsize=fillsize)
+
     def fill(self, color, fillsize):
         """Slow fill routine"""
+        # self.turn_on_display()
         image = Image.new('1', (fillsize, self.height), color)
         for x in range(0, self.width, fillsize):
             self.draw(x, 0, image)
