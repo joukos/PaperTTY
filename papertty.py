@@ -666,6 +666,7 @@ def terminal(settings, vcsa, font, fontsize, noclear, nocursor, cursor, sleep, t
                                                 **textargs)
                         oldbuff = buff
                         oldcursor = cursor
+                        flags['force_redraw'] = False
                     else:
                         # delay before next update check
                         time.sleep(float(sleep))
