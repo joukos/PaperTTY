@@ -593,7 +593,7 @@ def terminal(settings, vcsa, font, fontsize, noclear, nocursor, cursor, sleep, t
                     print('    (h) to change font size,')
                 print('    (x) to exit,')
                 print('    anything else to continue.')
-                print('Use --font {} --size {} --spacing {} for the current setting.'.format(ptty.fontfile, ptty.fontsize, ptty.spacing))
+                print('Command line arguments for current settings:\n    --font {} --size {} --spacing {}'.format(ptty.fontfile, ptty.fontsize, ptty.spacing))
 
                 ch = sys.stdin.readline().strip()
                 if ch == 'x':
@@ -602,10 +602,10 @@ def terminal(settings, vcsa, font, fontsize, noclear, nocursor, cursor, sleep, t
                     sys.exit(0)
                 elif ch == 'f':
                     print('Current font: {}'.format(ptty.fontfile))
-                    font_name = click.prompt('Enter new font (leave empty to abort)')
-                    if font_name:
+                    new_font = click.prompt('Enter new font (leave empty to abort)', default='', show_default=False)
+                    if new_font:
                         ptty.spacing = spacing
-                        ptty.font = ptty.load_font(font_name, keep_if_not_found=True)
+                        ptty.font = ptty.load_font(new_font, keep_if_not_found=True)
                         if autofit:
                             max_dim = ptty.fit(portrait)
                             print("Automatic resize of TTY to {} rows, {} columns".format(max_dim[1], max_dim[0]))
@@ -615,12 +615,8 @@ def terminal(settings, vcsa, font, fontsize, noclear, nocursor, cursor, sleep, t
                         print('Font not changed')
                 elif ch == 's':
                     print('Current spacing: {}'.format(ptty.spacing))
-                    new_spacing = None
-                    try:
-                        new_spacing = int(click.prompt('Enter new spacing (leave empty to abort)'))
-                    except:
-                        pass
-                    if new_spacing or new_spacing == 0:
+                    new_spacing = click.prompt('Enter new spacing (leave empty to abort)', default='empty', type=int, show_default=False)
+                    if new_spacing != 'empty':
                         ptty.spacing = new_spacing
                         ptty.recalculate_font()
                         if autofit:
@@ -632,12 +628,8 @@ def terminal(settings, vcsa, font, fontsize, noclear, nocursor, cursor, sleep, t
                         print('Spacing not changed')
                 elif ch == 'h' and ptty.is_truetype:
                     print('Current font size: {}'.format(ptty.fontsize))
-                    new_fontsize = None
-                    try:
-                        new_fontsize = int(click.prompt('Enter new font size (leave empty to abort)'))
-                    except:
-                        pass
-                    if new_fontsize:
+                    new_fontsize = click.prompt('Enter new font size (leave empty to abort)', default='empty', type=int, show_default=False)
+                    if new_fontsize != 'empty':
                         ptty.fontsize = new_fontsize
                         ptty.spacing = spacing
                         ptty.font = ptty.load_font(path=None)
