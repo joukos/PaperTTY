@@ -534,7 +534,7 @@ def terminal(settings, vcsa, font, fontsize, noclear, nocursor, cursor, sleep, t
     oldimage = None
     oldcursor = None
     # dirty - should refactor to make this cleaner
-    flags = {'scrub_requested': False, 'force_redraw': False}
+    flags = {'scrub_requested': False, 'show_menu': False}
     
     # handle SIGINT from `systemctl stop` and Ctrl-C
     def sigint_handler(sig, frame):
@@ -543,67 +543,9 @@ def terminal(settings, vcsa, font, fontsize, noclear, nocursor, cursor, sleep, t
             if not noclear:
                 ptty.showtext(oldbuff, fill=ptty.white, **textargs)
             sys.exit(0)
-
-        print()
-        print('Rendering paused. Enter')
-        print('    (f) to change font,')
-        print('    (s) to change spacing,')
-        if ptty.is_truetype:
-            print('    (h) to change font size,')
-        print('    (x) to exit,')
-        print('    anything else to continue.')
-        print('Use --font {} --size {} --spacing {} for the current setting.'.format(ptty.fontfile, ptty.fontsize, ptty.spacing))
-
-        ch = sys.stdin.readline().strip()
-        if ch == 'x':
-            if not noclear:
-                ptty.showtext(oldbuff, fill=ptty.white, **textargs)
-            sys.exit(0)
-        elif ch == 'f':
-            print('Current font: {}'.format(ptty.fontfile))
-            print('Enter new font (leave empty to abort):')
-            font_name = sys.stdin.readline().strip()
-            if font_name:
-                ptty.spacing = spacing
-                ptty.font = ptty.load_font(font_name, keep_if_not_found=True)
-                if autofit:
-                    max_dim = ptty.fit(portrait)
-                    print("Automatic resize of TTY to {} rows, {} columns".format(max_dim[1], max_dim[0]))
-                    ptty.set_tty_size(ptty.ttydev(vcsa), max_dim[1], max_dim[0])
-                flags['force_redraw'] = True
-        elif ch == 's':
-            print('Current spacing: {}'.format(ptty.spacing))
-            print('Enter new spacing (leave empty to abort):')
-            new_spacing = None
-            try:
-                new_spacing = int(sys.stdin.readline().strip())
-            except:
-                pass
-            if new_spacing or new_spacing == 0:
-                ptty.spacing = new_spacing
-                ptty.recalculate_font()
-                if autofit:
-                    max_dim = ptty.fit(portrait)
-                    print("Automatic resize of TTY to {} rows, {} columns".format(max_dim[1], max_dim[0]))
-                    ptty.set_tty_size(ptty.ttydev(vcsa), max_dim[1], max_dim[0])
-                flags['force_redraw'] = True
-        elif ch == 'h' and ptty.is_truetype:
-            print('Current font size: {}'.format(ptty.fontsize))
-            print('Enter new font size (leave empty to abort):')
-            new_fontsize = None
-            try:
-                new_fontsize = int(sys.stdin.readline().strip())
-            except:
-                pass
-            if new_fontsize:
-                ptty.fontsize = new_fontsize
-                ptty.spacing = spacing
-                ptty.font = ptty.load_font(path=None)
-                if autofit:
-                    max_dim = ptty.fit(portrait)
-                    print("Automatic resize of TTY to {} rows, {} columns".format(max_dim[1], max_dim[0]))
-                    ptty.set_tty_size(ptty.ttydev(vcsa), max_dim[1], max_dim[0])
-                flags['force_redraw'] = True
+        else:
+             print('Showing menu, please wait ...')
+             flags['show_menu'] = True
 
     # toggle scrub flag when SIGUSR1 received
     def sigusr1_handler(sig, frame):
@@ -641,6 +583,69 @@ def terminal(settings, vcsa, font, fontsize, noclear, nocursor, cursor, sleep, t
                 oldbuff = ''
                 flags['scrub_requested'] = False
 
+            if flags['show_menu']:
+                flags['show_menu'] = False
+                print()
+                print('Rendering paused. Enter')
+                print('    (f) to change font,')
+                print('    (s) to change spacing,')
+                if ptty.is_truetype:
+                    print('    (h) to change font size,')
+                print('    (x) to exit,')
+                print('    anything else to continue.')
+                print('Use --font {} --size {} --spacing {} for the current setting.'.format(ptty.fontfile, ptty.fontsize, ptty.spacing))
+
+                ch = sys.stdin.readline().strip()
+                if ch == 'x':
+                    if not noclear:
+                        ptty.showtext(oldbuff, fill=ptty.white, **textargs)
+                    sys.exit(0)
+                elif ch == 'f':
+                    print('Current font: {}'.format(ptty.fontfile))
+                    print('Enter new font (leave empty to abort):')
+                    font_name = sys.stdin.readline().strip()
+                    if font_name:
+                        ptty.spacing = spacing
+                        ptty.font = ptty.load_font(font_name, keep_if_not_found=True)
+                        if autofit:
+                            max_dim = ptty.fit(portrait)
+                            print("Automatic resize of TTY to {} rows, {} columns".format(max_dim[1], max_dim[0]))
+                            ptty.set_tty_size(ptty.ttydev(vcsa), max_dim[1], max_dim[0])
+                        oldbuff = None
+                elif ch == 's':
+                    print('Current spacing: {}'.format(ptty.spacing))
+                    print('Enter new spacing (leave empty to abort):')
+                    new_spacing = None
+                    try:
+                        new_spacing = int(sys.stdin.readline().strip())
+                    except:
+                        pass
+                    if new_spacing or new_spacing == 0:
+                        ptty.spacing = new_spacing
+                        ptty.recalculate_font()
+                        if autofit:
+                            max_dim = ptty.fit(portrait)
+                            print("Automatic resize of TTY to {} rows, {} columns".format(max_dim[1], max_dim[0]))
+                            ptty.set_tty_size(ptty.ttydev(vcsa), max_dim[1], max_dim[0])
+                        oldbuff = None
+                elif ch == 'h' and ptty.is_truetype:
+                    print('Current font size: {}'.format(ptty.fontsize))
+                    print('Enter new font size (leave empty to abort):')
+                    new_fontsize = None
+                    try:
+                        new_fontsize = int(sys.stdin.readline().strip())
+                    except:
+                        pass
+                    if new_fontsize:
+                        ptty.fontsize = new_fontsize
+                        ptty.spacing = spacing
+                        ptty.font = ptty.load_font(path=None)
+                        if autofit:
+                            max_dim = ptty.fit(portrait)
+                            print("Automatic resize of TTY to {} rows, {} columns".format(max_dim[1], max_dim[0]))
+                            ptty.set_tty_size(ptty.ttydev(vcsa), max_dim[1], max_dim[0])
+                        oldbuff = None
+
             with open(vcsa, 'rb') as f:
                 with open(vcsudev, 'rb') as vcsu:
                     # read the first 4 bytes to get the console attributes
@@ -659,14 +664,13 @@ def terminal(settings, vcsa, font, fontsize, noclear, nocursor, cursor, sleep, t
                     # add newlines per column count
                     buff = ''.join([r.decode(encoding, 'replace') + '\n' for r in ptty.split(buff, cols * character_width)])
                     # do something only if content has changed or cursor was moved
-                    if flags['force_redraw'] or buff != oldbuff or cursor != oldcursor:
+                    if buff != oldbuff or cursor != oldcursor:
                         # show new content
                         oldimage = ptty.showtext(buff, fill=ptty.black, cursor=cursor if not nocursor else None,
                                                 oldimage=oldimage,
                                                 **textargs)
                         oldbuff = buff
                         oldcursor = cursor
-                        flags['force_redraw'] = False
                     else:
                         # delay before next update check
                         time.sleep(float(sleep))
