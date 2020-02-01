@@ -602,8 +602,7 @@ def terminal(settings, vcsa, font, fontsize, noclear, nocursor, cursor, sleep, t
                     sys.exit(0)
                 elif ch == 'f':
                     print('Current font: {}'.format(ptty.fontfile))
-                    print('Enter new font (leave empty to abort):')
-                    font_name = sys.stdin.readline().strip()
+                    font_name = click.prompt('Enter new font (leave empty to abort)')
                     if font_name:
                         ptty.spacing = spacing
                         ptty.font = ptty.load_font(font_name, keep_if_not_found=True)
@@ -612,12 +611,13 @@ def terminal(settings, vcsa, font, fontsize, noclear, nocursor, cursor, sleep, t
                             print("Automatic resize of TTY to {} rows, {} columns".format(max_dim[1], max_dim[0]))
                             ptty.set_tty_size(ptty.ttydev(vcsa), max_dim[1], max_dim[0])
                         oldbuff = None
+                    else:
+                        print('Font not changed')
                 elif ch == 's':
                     print('Current spacing: {}'.format(ptty.spacing))
-                    print('Enter new spacing (leave empty to abort):')
                     new_spacing = None
                     try:
-                        new_spacing = int(sys.stdin.readline().strip())
+                        new_spacing = int(click.prompt('Enter new spacing (leave empty to abort)'))
                     except:
                         pass
                     if new_spacing or new_spacing == 0:
@@ -628,12 +628,13 @@ def terminal(settings, vcsa, font, fontsize, noclear, nocursor, cursor, sleep, t
                             print("Automatic resize of TTY to {} rows, {} columns".format(max_dim[1], max_dim[0]))
                             ptty.set_tty_size(ptty.ttydev(vcsa), max_dim[1], max_dim[0])
                         oldbuff = None
+                    else:
+                        print('Spacing not changed')
                 elif ch == 'h' and ptty.is_truetype:
                     print('Current font size: {}'.format(ptty.fontsize))
-                    print('Enter new font size (leave empty to abort):')
                     new_fontsize = None
                     try:
-                        new_fontsize = int(sys.stdin.readline().strip())
+                        new_fontsize = int(click.prompt('Enter new font size (leave empty to abort)'))
                     except:
                         pass
                     if new_fontsize:
@@ -645,6 +646,8 @@ def terminal(settings, vcsa, font, fontsize, noclear, nocursor, cursor, sleep, t
                             print("Automatic resize of TTY to {} rows, {} columns".format(max_dim[1], max_dim[0]))
                             ptty.set_tty_size(ptty.ttydev(vcsa), max_dim[1], max_dim[0])
                         oldbuff = None
+                    else:
+                        print('Font size not changed')
 
             with open(vcsa, 'rb') as f:
                 with open(vcsudev, 'rb') as vcsu:
