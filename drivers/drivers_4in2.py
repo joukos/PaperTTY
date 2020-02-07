@@ -355,17 +355,17 @@ class EPD4in2(drivers_partial.WavesharePartial,
                 else:
                     self.frame_buffer[idiv + idxj] &= ~mask
 
-    # def scrub(self, fillsize=16):
-    #     """Scrub display - only works properly with partial refresh"""
-    #     self.fill(self.black, fillsize=fillsize)
-    #     self.fill(self.white, fillsize=fillsize)
-
+    # When writing outside the range of the display will cause an error.
     def fill(self, color, fillsize):
         """Slow fill routine"""
-        # self.turn_on_display()
+        div, rem = divmod(self.width, fillsize)
+
         image = Image.new('1', (fillsize, self.height), color)
-        for x in range(0, self.width, fillsize):
-            self.draw(x, 0, image)
+        for i in range(0, div):
+            self.draw(i * fillsize, 0, image)
+
+        image = Image.new('1', (rem, self.height), color)
+        self.draw(div * fillsize, 0, image)
 
     def draw(self, x, y, image):
         """replace a particular area on the display with an image"""
