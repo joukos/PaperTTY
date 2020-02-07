@@ -44,6 +44,7 @@ class EPD4in2(drivers_partial.WavesharePartial,
         super(drivers_partial.WavesharePartial, self).__init__(name='4.2"',
                                                                width=300,
                                                                height=400)
+        self.supports_partial = True
 
         # this is the memory buffer that will be updated!
         self.frame_buffer = [0x00] * (self.width * self.height // 8)
