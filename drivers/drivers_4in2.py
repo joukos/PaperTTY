@@ -364,8 +364,9 @@ class EPD4in2(drivers_partial.WavesharePartial,
         for i in range(0, div):
             self.draw(i * fillsize, 0, image)
 
-        image = Image.new('1', (rem, self.height), color)
-        self.draw(div * fillsize, 0, image)
+        if rem != 0:
+            image = Image.new('1', (rem, self.height), color)
+            self.draw(div * fillsize, 0, image)
 
     def draw(self, x, y, image):
         """replace a particular area on the display with an image"""
