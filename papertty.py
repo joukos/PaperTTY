@@ -371,6 +371,26 @@ class PaperTTY:
             return image
         else:
             self.error("Display not ready")
+    
+    def clear(self):
+        """Clears the display; set all black, then all white, or use INIT mode, if driver supports it."""
+        if self.ready():
+            if hasattr(self.driver, "DISPLAY_UPDATE_MODE_INIT"):
+                print('Driver supports INIT mode')
+                image = Image.new('1', (self.driver.width, self.driver.height), self.white)
+                self.driver.draw(0, 0, image, self.driver.DISPLAY_UPDATE_MODE_INIT)
+                print('Display reinitialized.')
+            else:
+                print('Driver does not support INIT mode. Blacking and whiting out display instead.')
+                print('Blacking out display ...')
+                image = Image.new('1', (self.driver.width, self.driver.height), self.black)
+                self.driver.draw(0, 0, image)
+                print('... done. Whiting out display ...')
+                image = Image.new('1', (self.driver.width, self.driver.height), self.white)
+                self.driver.draw(0, 0, image)
+                print('... done.')
+        else:
+            self.error("Display not ready")
 
 
 class Settings:
@@ -534,7 +554,7 @@ def terminal(settings, vcsa, font, fontsize, noclear, nocursor, cursor, sleep, t
     oldimage = None
     oldcursor = None
     # dirty - should refactor to make this cleaner
-    flags = {'scrub_requested': False, 'show_menu': False}
+    flags = {'scrub_requested': False, 'show_menu': False, 'clear': False}
     
     # handle SIGINT from `systemctl stop` and Ctrl-C
     def sigint_handler(sig, frame):
@@ -575,14 +595,6 @@ def terminal(settings, vcsa, font, fontsize, noclear, nocursor, cursor, sleep, t
             print("Started displaying {}, minimum update interval {} s, exit with Ctrl-C".format(vcsa, sleep))
         character_width, vcsudev = ptty.vcsudev(vcsa)
         while True:
-            # if SIGUSR1 toggled the scrub flag, scrub display and start with a fresh image
-            if flags['scrub_requested']:
-                ptty.driver.scrub()
-                # clear old image and buffer and restore flag
-                oldimage = None
-                oldbuff = ''
-                flags['scrub_requested'] = False
-
             if flags['show_menu']:
                 flags['show_menu'] = False
                 print()
@@ -591,6 +603,8 @@ def terminal(settings, vcsa, font, fontsize, noclear, nocursor, cursor, sleep, t
                 print('    (s) to change spacing,')
                 if ptty.is_truetype:
                     print('    (h) to change font size,')
+                print('    (c) to scrub,')
+                print('    (i) reinitialize display,')
                 print('    (x) to exit,')
                 print('    anything else to continue.')
                 print('Command line arguments for current settings:\n    --font {} --size {} --spacing {}'.format(ptty.fontfile, ptty.fontsize, ptty.spacing))
@@ -640,7 +654,21 @@ def terminal(settings, vcsa, font, fontsize, noclear, nocursor, cursor, sleep, t
                         oldbuff = None
                     else:
                         print('Font size not changed')
+                elif ch == 'c':
+                    flags['scrub_requested'] = True
+                elif ch == 'i':
+                    ptty.clear()
+                    oldimage = None
+                    oldbuff = None
 
+            # if user or SIGUSR1 toggled the scrub flag, scrub display and start with a fresh image
+            if flags['scrub_requested']:
+                ptty.driver.scrub()
+                # clear old image and buffer and restore flag
+                oldimage = None
+                oldbuff = ''
+                flags['scrub_requested'] = False
+            
             with open(vcsa, 'rb') as f:
                 with open(vcsudev, 'rb') as vcsu:
                     # read the first 4 bytes to get the console attributes
