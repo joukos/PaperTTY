@@ -1,6 +1,6 @@
 # Changelog
 
-- **2020-01-29**
+- **2020-02-15**
   - Added interactive mode.
 - **2020-01-25**
   - Added support for more cursors.
