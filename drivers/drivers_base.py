@@ -66,6 +66,12 @@ class DisplayDriver(ABC):
         for x in range(0, self.width, fillsize):
             self.draw(x, 0, image)
 
+    def clear(self):
+        """Clears the display"""
+        image = Image.new('1', (self.height, self.width), self.black)
+        self.draw(0, 0, image)
+        image = Image.new('1', (self.height, self.width), self.white)
+        self.draw(0, 0, image)
 
 class SpecialDriver(DisplayDriver):
     """Drivers that don't control hardware"""

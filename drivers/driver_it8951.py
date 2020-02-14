@@ -277,6 +277,10 @@ class IT8951(DisplayDriver):
         # Blit the image to the display
         self.display_area(x, y, width, height, update_mode)
 
+    def clear(self):
+        image = Image.new('1', (self.width, self.height), self.white)
+        self.draw(0, 0, image, self.DISPLAY_UPDATE_MODE_INIT)
+
     def pack_image(self, image):
         """Packs a PIL image for transfer over SPI to the driver board."""
         if image.mode == '1':
