@@ -375,20 +375,8 @@ class PaperTTY:
     def clear(self):
         """Clears the display; set all black, then all white, or use INIT mode, if driver supports it."""
         if self.ready():
-            if hasattr(self.driver, "DISPLAY_UPDATE_MODE_INIT"):
-                print('Driver supports INIT mode')
-                image = Image.new('1', (self.driver.width, self.driver.height), self.white)
-                self.driver.draw(0, 0, image, self.driver.DISPLAY_UPDATE_MODE_INIT)
-                print('Display reinitialized.')
-            else:
-                print('Driver does not support INIT mode. Blacking and whiting out display instead.')
-                print('Blacking out display ...')
-                image = Image.new('1', (self.driver.width, self.driver.height), self.black)
-                self.driver.draw(0, 0, image)
-                print('... done. Whiting out display ...')
-                image = Image.new('1', (self.driver.width, self.driver.height), self.white)
-                self.driver.draw(0, 0, image)
-                print('... done.')
+            self.driver.clear()
+            print('Display reinitialized.')
         else:
             self.error("Display not ready")
 
