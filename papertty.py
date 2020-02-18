@@ -28,6 +28,7 @@ import signal
 import struct
 # for stdin and exit
 import sys
+import select
 # for setting TTY size
 import termios
 # for sleeping
@@ -58,31 +59,17 @@ class PaperTTY:
     encoding = None
     spacing = 0
     cursor = None
+    rows = None
+    cols = None
+    is_truetype = None
+    fontfile = None
 
     def __init__(self, driver, font=defaultfont, fontsize=defaultsize, partial=None, encoding='utf-8', spacing=0, cursor=None):
         """Create a PaperTTY with the chosen driver and settings"""
         self.driver = get_drivers()[driver]['class']()
-        self.font = self.load_font(font, fontsize) if font else None
-        if self.font:
-            # get physical dimensions of font. Take the average width of
-            # 1000 M's because oblique fonts a complicated.
-            self.font_width = self.font.getsize('M' * 1000)[0] // 1000
-            if 'getmetrics' in dir(self.font):
-                metrics_ascent, metrics_descent = self.font.getmetrics()
-                self.spacing = int(spacing) if spacing != 'auto' else (metrics_descent - 2)
-                print('Setting spacing to {}.'.format(self.spacing))
-                # despite what the PIL docs say, ascent appears to be the
-                # height of the font, while descent is not, in fact, negative.
-                # Couuld use testing with more fonts.
-                self.font_height = metrics_ascent + self.spacing
-            else:
-                # No autospacing for pil fonts, but they usually don't need it.
-                self.spacing = int(spacing) if spacing != 'auto' else 0
-                # pil fonts don't seem to have metrics, but all
-                # characters seem to have the same height
-                self.font_height = self.font.getsize('a')[1] + self.spacing
-        
+        self.spacing = spacing
         self.fontsize = fontsize
+        self.font = self.load_font(font) if font else None
         self.partial = partial
         self.white = self.driver.white
         self.black = self.driver.black
@@ -99,9 +86,10 @@ class PaperTTY:
         print(msg)
         sys.exit(code)
 
-    @staticmethod
-    def set_tty_size(tty, rows, cols):
+    def set_tty_size(self, tty, rows, cols):
         """Set a TTY (/dev/tty*) to a certain size. Must be a real TTY that support ioctls."""
+        self.rows = rows
+        self.cols = cols
         with open(tty, 'w') as tty:
             size = struct.pack("HHHH", int(rows), int(cols), 0, 0)
             try:
@@ -184,25 +172,73 @@ class PaperTTY:
             print("No write access to {} so cannot set terminal size, maybe run with sudo?".format(tty))
         return True
 
-    def load_font(self, path, size):
+    def load_font(self, path, keep_if_not_found=False):
         """Load the PIL or TrueType font"""
         font = None
+        # If no path is given, reuse existing font path. Good for resizing.
+        path = path or self.fontfile
         if os.path.isfile(path):
             try:
                 # first check if the font looks like a PILfont
                 with open(path, 'rb') as f:
                     if f.readline() == b"PILfont\n":
+                        self.is_truetype = False
+                        print('Loading PIL font {}. Font size is ignored.'.format(path))
                         font = ImageFont.load(path)
                         # otherwise assume it's a TrueType font
                     else:
-                        font = ImageFont.truetype(path, size)
+                        self.is_truetype = True
+                        font = ImageFont.truetype(path, self.fontsize)
+                    self.fontfile = path
             except IOError:
                 self.error("Invalid font: '{}'".format(path))
+        elif keep_if_not_found:
+            print("The font '{}' could not be found, keep using old font.".format(path))
+            font = self.font
         else:
             print("The font '{}' could not be found, using fallback font instead.".format(path))
             font = ImageFont.load_default()
 
+        if font:
+            # get physical dimensions of font. Take the average width of
+            # 1000 M's because oblique fonts are complicated.
+            self.font_width = font.getsize('M' * 1000)[0] // 1000
+            if 'getmetrics' in dir(font):
+                metrics_ascent, metrics_descent = font.getmetrics()
+                self.spacing = int(self.spacing) if self.spacing != 'auto' else (metrics_descent - 2)
+                print('Setting spacing to {}.'.format(self.spacing))
+                # despite what the PIL docs say, ascent appears to be the
+                # height of the font, while descent is not, in fact, negative.
+                # Couuld use testing with more fonts.
+                self.font_height = metrics_ascent + self.spacing
+            else:
+                # No autospacing for pil fonts, but they usually don't need it.
+                self.spacing = int(self.spacing) if self.spacing != 'auto' else 0
+                # pil fonts don't seem to have metrics, but all
+                # characters seem to have the same height
+                self.font_height = font.getsize('a')[1] + self.spacing
+
         return font
+
+    def recalculate_font(self):
+        """Load the PIL or TrueType font"""
+        # get physical dimensions of font. Take the average width of
+        # 1000 M's because oblique fonts a complicated.
+        self.font_width = self.font.getsize('M' * 1000)[0] // 1000
+        if 'getmetrics' in dir(self.font):
+            metrics_ascent, metrics_descent = self.font.getmetrics()
+            self.spacing = int(self.spacing) if self.spacing != 'auto' else (metrics_descent - 2)
+            print('Setting spacing to {}.'.format(self.spacing))
+            # despite what the PIL docs say, ascent appears to be the
+            # height of the font, while descent is not, in fact, negative.
+            # Couuld use testing with more fonts.
+            self.font_height = metrics_ascent + self.spacing
+        else:
+            # No autospacing for pil fonts, but they usually don't need it.
+            self.spacing = int(self.spacing) if self.spacing != 'auto' else 0
+            # pil fonts don't seem to have metrics, but all
+            # characters seem to have the same height
+            self.font_height = self.font.getsize('a')[1] + self.spacing
 
     def init_display(self):
         """Initialize the display - call the driver's init method"""
@@ -335,6 +371,14 @@ class PaperTTY:
             return image
         else:
             self.error("Display not ready")
+    
+    def clear(self):
+        """Clears the display; set all black, then all white, or use INIT mode, if driver supports it."""
+        if self.ready():
+            self.driver.clear()
+            print('Display reinitialized.')
+        else:
+            self.error("Display not ready")
 
 
 class Settings:
@@ -465,9 +509,11 @@ def vnc(settings, host, display, password, rotate, invert, sleep, fullevery):
 @click.option('--scrub', 'apply_scrub', is_flag=True, default=False, help='Apply scrub when starting up',
               show_default=True)
 @click.option('--autofit', is_flag=True, default=False, help='Autofit terminal size to font size', show_default=True)
+@click.option('--attributes', is_flag=True, default=False, help='Use attributes', show_default=True)
+@click.option('--interactive', is_flag=True, default=False, help='Interactive mode')
 @click.pass_obj
 def terminal(settings, vcsa, font, fontsize, noclear, nocursor, cursor, sleep, ttyrows, ttycols, portrait, flipx, flipy,
-             spacing, apply_scrub, autofit):
+             spacing, apply_scrub, autofit, attributes, interactive):
     """Display virtual console on an e-Paper display, exit with Ctrl-C."""
     settings.args['font'] = font
     settings.args['fontsize'] = fontsize
@@ -496,14 +542,18 @@ def terminal(settings, vcsa, font, fontsize, noclear, nocursor, cursor, sleep, t
     oldimage = None
     oldcursor = None
     # dirty - should refactor to make this cleaner
-    flags = {'scrub_requested': False}
-
+    flags = {'scrub_requested': False, 'show_menu': False, 'clear': False}
+    
     # handle SIGINT from `systemctl stop` and Ctrl-C
     def sigint_handler(sig, frame):
-        print("Exiting (SIGINT)...")
-        if not noclear:
-            ptty.showtext(oldbuff, fill=ptty.white, **textargs)
-        sys.exit(0)
+        if not interactive:
+            print("Exiting (SIGINT)...")
+            if not noclear:
+                ptty.showtext(oldbuff, fill=ptty.white, **textargs)
+            sys.exit(0)
+        else:
+             print('Showing menu, please wait ...')
+             flags['show_menu'] = True
 
     # toggle scrub flag when SIGUSR1 received
     def sigusr1_handler(sig, frame):
@@ -527,16 +577,86 @@ def terminal(settings, vcsa, font, fontsize, noclear, nocursor, cursor, sleep, t
                 max_dim = ptty.fit(portrait)
                 print("Automatic resize of TTY to {} rows, {} columns".format(max_dim[1], max_dim[0]))
                 ptty.set_tty_size(ptty.ttydev(vcsa), max_dim[1], max_dim[0])
-        print("Started displaying {}, minimum update interval {} s, exit with Ctrl-C".format(vcsa, sleep))
+        if interactive:
+            print("Started displaying {}, minimum update interval {} s, open menu with Ctrl-C".format(vcsa, sleep))
+        else:
+            print("Started displaying {}, minimum update interval {} s, exit with Ctrl-C".format(vcsa, sleep))
         character_width, vcsudev = ptty.vcsudev(vcsa)
         while True:
-            # if SIGUSR1 toggled the scrub flag, scrub display and start with a fresh image
+            if flags['show_menu']:
+                flags['show_menu'] = False
+                print()
+                print('Rendering paused. Enter')
+                print('    (f) to change font,')
+                print('    (s) to change spacing,')
+                if ptty.is_truetype:
+                    print('    (h) to change font size,')
+                print('    (c) to scrub,')
+                print('    (i) reinitialize display,')
+                print('    (x) to exit,')
+                print('    anything else to continue.')
+                print('Command line arguments for current settings:\n    --font {} --size {} --spacing {}'.format(ptty.fontfile, ptty.fontsize, ptty.spacing))
+
+                ch = sys.stdin.readline().strip()
+                if ch == 'x':
+                    if not noclear:
+                        ptty.showtext(oldbuff, fill=ptty.white, **textargs)
+                    sys.exit(0)
+                elif ch == 'f':
+                    print('Current font: {}'.format(ptty.fontfile))
+                    new_font = click.prompt('Enter new font (leave empty to abort)', default='', show_default=False)
+                    if new_font:
+                        ptty.spacing = spacing
+                        ptty.font = ptty.load_font(new_font, keep_if_not_found=True)
+                        if autofit:
+                            max_dim = ptty.fit(portrait)
+                            print("Automatic resize of TTY to {} rows, {} columns".format(max_dim[1], max_dim[0]))
+                            ptty.set_tty_size(ptty.ttydev(vcsa), max_dim[1], max_dim[0])
+                        oldbuff = None
+                    else:
+                        print('Font not changed')
+                elif ch == 's':
+                    print('Current spacing: {}'.format(ptty.spacing))
+                    new_spacing = click.prompt('Enter new spacing (leave empty to abort)', default='empty', type=int, show_default=False)
+                    if new_spacing != 'empty':
+                        ptty.spacing = new_spacing
+                        ptty.recalculate_font()
+                        if autofit:
+                            max_dim = ptty.fit(portrait)
+                            print("Automatic resize of TTY to {} rows, {} columns".format(max_dim[1], max_dim[0]))
+                            ptty.set_tty_size(ptty.ttydev(vcsa), max_dim[1], max_dim[0])
+                        oldbuff = None
+                    else:
+                        print('Spacing not changed')
+                elif ch == 'h' and ptty.is_truetype:
+                    print('Current font size: {}'.format(ptty.fontsize))
+                    new_fontsize = click.prompt('Enter new font size (leave empty to abort)', default='empty', type=int, show_default=False)
+                    if new_fontsize != 'empty':
+                        ptty.fontsize = new_fontsize
+                        ptty.spacing = spacing
+                        ptty.font = ptty.load_font(path=None)
+                        if autofit:
+                            max_dim = ptty.fit(portrait)
+                            print("Automatic resize of TTY to {} rows, {} columns".format(max_dim[1], max_dim[0]))
+                            ptty.set_tty_size(ptty.ttydev(vcsa), max_dim[1], max_dim[0])
+                        oldbuff = None
+                    else:
+                        print('Font size not changed')
+                elif ch == 'c':
+                    flags['scrub_requested'] = True
+                elif ch == 'i':
+                    ptty.clear()
+                    oldimage = None
+                    oldbuff = None
+
+            # if user or SIGUSR1 toggled the scrub flag, scrub display and start with a fresh image
             if flags['scrub_requested']:
                 ptty.driver.scrub()
                 # clear old image and buffer and restore flag
                 oldimage = None
                 oldbuff = ''
                 flags['scrub_requested'] = False
+            
             with open(vcsa, 'rb') as f:
                 with open(vcsudev, 'rb') as vcsu:
                     # read the first 4 bytes to get the console attributes
