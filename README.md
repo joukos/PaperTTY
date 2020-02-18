@@ -1,6 +1,6 @@
 # PaperTTY
 
-## Interactive Update *(2020-02-15)*
+## Interactive Update *(2020-02-18)*
 
 Starting `terminal` with the `--interactive` option adds a menu to the Ctrl-C handler that allows you to change the font, font size and spacing on the fly. This should be helpful when trying out fonts.
 
