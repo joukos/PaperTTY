@@ -289,7 +289,7 @@ class PaperTTY:
             diff_bbox = None
             # number of updates; when it's 0, do a full refresh
             updates = 0
-            client.timeout = 10
+            client.timeout = 30
             while True:
                 try:
                     client.refreshScreen()
