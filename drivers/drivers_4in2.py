@@ -374,24 +374,19 @@ class EPD4in2(drivers_partial.WavesharePartial,
 
         return im
 
-    # When writing outside the range of the display will cause an error.
+    # Writing outside the range of the display will cause an error.
     def fill(self, color, fillsize):
         """Slow fill routine"""
-        div, rem = divmod(self.height, fillsize)
 
-        image = Image.new('1', (fillsize, self.width), color)
-        for i in range(0, div):
-            self.draw(i * fillsize, 0, image)
+        div, rem = divmod(self.height, fillsize)
+        image = Image.new('1', (self.width, fillsize), color)
+
+        for i in range(div):
+            self.draw(0, i * fillsize, image)
 
         if rem != 0:
-            image = Image.new('1', (rem, self.width), color)
-            self.draw(div * fillsize, 0, image)
-
-    # def fill(self, color, fillsize):
-    #     """Slow fill routine"""
-    #     image = Image.new('1', (fillsize, self.height), color)
-    #     for x in range(0, self.height, fillsize):
-    #         self.draw(x, 0, image)
+            image = Image.new('1', (self.width, rem), color)
+            self.draw(0, div * fillsize, image)
 
     def set_frame_buffer(self, x, y, image):
 
