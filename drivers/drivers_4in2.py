@@ -24,17 +24,18 @@ try:
 except ImportError:
     pass
 
-#    The driver works as follows:
+# The driver works as follows:
 #
-# 400x300, 4.2inch E-Ink display module
-# SKU: 13353
-# Part Number: 4.2inch e-Paper Module
-# Brand: Waveshare
-# UPC: 614961950887
+# This driver is for the following display:
+#     400x300, 4.2inch E-Ink display module
+#     SKU: 13353
+#     Part Number: 4.2inch e-Paper Module
+#     Brand: Waveshare
+#     UPC: 614961950887
 #
 # When rotating the display with side of the connector of the display (not the
 # module) at the bottom, the display width is 400 and the height is 300. The
-# letters of the module and the connector of the module point to the right.
+# letters on the module and the connector of the module point to the right.
 #
 # The origin of the display is in the top left corner and filling happens by
 # line.
@@ -190,9 +191,9 @@ class EPD4in2(drivers_partial.WavesharePartial,
             self.init_bw()
 
     def clear(self):
-        width = int(self.width // 8
-                    if self.width % 8 == 0
-                    else self.width % 8 + 1)
+        """Full refresh of the display"""
+
+        width = int(self.width // 8)
         height = int(self.height)
 
         self.send_command(self.DATA_START_TRANSMISSION_1)
@@ -206,6 +207,20 @@ class EPD4in2(drivers_partial.WavesharePartial,
         self.send_command(self.DISPLAY_REFRESH)
         self.delay_ms(10)
         self.turn_on_display()
+
+    # Writing outside the range of the display will cause an error.
+    def fill(self, color, fillsize):
+        """Slow fill routine"""
+
+        div, rem = divmod(self.height, fillsize)
+        image = Image.new('1', (self.width, fillsize), color)
+
+        for i in range(div):
+            self.draw(0, i * fillsize, image)
+
+        if rem != 0:
+            image = Image.new('1', (self.width, rem), color)
+            self.draw(0, div * fillsize, image)
 
     # def display_gray(self, frame_buffer):
     #     # note: this code is currently not being called.
@@ -313,7 +328,6 @@ class EPD4in2(drivers_partial.WavesharePartial,
 
         self.turn_on_display()
 
-
     def display_partial(self, x_start, y_start, x_end, y_end):
 
         width = (self.width // 8)
@@ -355,12 +369,15 @@ class EPD4in2(drivers_partial.WavesharePartial,
         self.turn_on_display()
 
     def sleep(self):
-        self.send_command(0x02)  # power off
+        """Put the display in deep sleep mode"""
+
+        self.send_command(self.POWER_OFF)
         self.wait_until_idle()
-        self.send_command(0x07)  # deep sleep
-        self.send_data(0xa5)
+        self.set_setting(self.DEEP_SLEEP, [0xa5])
 
     def frame_buffer_to_image(self):
+        """Returns self.frame_buffer as a PIL.Image"""
+
         im = Image.new('1', (self.width, self.height), "white")
         pi = im.load()
 
@@ -374,21 +391,8 @@ class EPD4in2(drivers_partial.WavesharePartial,
 
         return im
 
-    # Writing outside the range of the display will cause an error.
-    def fill(self, color, fillsize):
-        """Slow fill routine"""
-
-        div, rem = divmod(self.height, fillsize)
-        image = Image.new('1', (self.width, fillsize), color)
-
-        for i in range(div):
-            self.draw(0, i * fillsize, image)
-
-        if rem != 0:
-            image = Image.new('1', (self.width, rem), color)
-            self.draw(0, div * fillsize, image)
-
     def set_frame_buffer(self, x, y, image):
+        """Updates self.frame_buffer with image at (x, y)"""
 
         image_monocolor = image.convert('1')
         imwidth, imheight = image_monocolor.size
