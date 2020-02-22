@@ -24,6 +24,31 @@ try:
 except ImportError:
     pass
 
+#    The driver works as follows:
+#
+# 400x300, 4.2inch E-Ink display module
+# SKU: 13353
+# Part Number: 4.2inch e-Paper Module
+# Brand: Waveshare
+# UPC: 614961950887
+#
+# When rotating the display with side of the connector of the display (not the
+# module) at the bottom, the display width is 400 and the height is 300. The
+# letters of the module and the connector of the module point to the right.
+#
+# The origin of the display is in the top left corner and filling happens by
+# line.
+#
+# The frame buffer is an array of bytes of size 400 * 300 / 8, each bit is one
+# pixel 0 is white, 1 is black
+#
+# The framebuffer should always contain the entire image, redrawing happens
+# only on the canged area.
+#
+# The properties width and height of the incoming image correspond to the
+# properties of the display, access to the pixels of the image is:
+# image.load[width, height]
+
 
 class EPD4in2(drivers_partial.WavesharePartial,
               drivers_consts.EPD4in2const):
@@ -42,8 +67,8 @@ class EPD4in2(drivers_partial.WavesharePartial,
 
     def __init__(self):
         super(drivers_partial.WavesharePartial, self).__init__(name='4.2"',
-                                                               width=300,
-                                                               height=400)
+                                                               width=400,
+                                                               height=300)
         self.supports_partial = True
 
         # this is the memory buffer that will be updated!
@@ -59,10 +84,10 @@ class EPD4in2(drivers_partial.WavesharePartial,
     # TODO: universal?
     def set_resolution(self):
         self.set_setting(self.RESOLUTION_SETTING,
-                         [(self.height >> 8) & 0xff,
-                          self.height & 0xff,
-                          (self.width >> 8) & 0xff,
-                          self.width & 0xff])
+                         [(self.width >> 8) & 0xff,
+                          self.width & 0xff,
+                          (self.height >> 8) & 0xff,
+                          self.height & 0xff])
 
     def reset(self):
         self.digital_write(self.RST_PIN, GPIO.HIGH)
@@ -165,10 +190,10 @@ class EPD4in2(drivers_partial.WavesharePartial,
             self.init_bw()
 
     def clear(self):
-        height = int(self.height // 8
-                     if self.height % 8 == 0
-                     else self.height % 8 + 1)
-        width = int(self.width)
+        width = int(self.width // 8
+                    if self.width % 8 == 0
+                    else self.width % 8 + 1)
+        height = int(self.height)
 
         self.send_command(self.DATA_START_TRANSMISSION_1)
         for i in range(width * height):
@@ -180,66 +205,6 @@ class EPD4in2(drivers_partial.WavesharePartial,
 
         self.send_command(self.DISPLAY_REFRESH)
         self.delay_ms(10)
-        self.turn_on_display()
-
-    def display_full(self):
-
-        height = int(self.height // 8
-                     if self.height % 8 == 0
-                     else self.height % 8 + 1)
-        width = int(self.width)
-
-        self.send_command(self.DATA_START_TRANSMISSION_2)
-        for j in range(width):
-            for i in range(height):
-                self.send_data(self.frame_buffer[j * height + i])
-
-        self.turn_on_display()
-
-    def display_partial(self, x_start, y_start, x_end, y_end):
-
-        # width = int(self.width)
-        height = int(self.height // 8
-                     if self.height % 8 == 0
-                     else self.height % 8 + 1)
-
-        x_start = int(x_start if x_start % 8 == 0 else x_start // 8 * 8 + 8)
-        x_end = int(x_end if x_end % 8 == 0 else x_end // 8 * 8 + 8)
-
-        y_start = int(y_start)
-        y_end = int(y_end)
-
-        self.set_setting(self.VCOM_AND_DATA_INTERVAL_SETTING, [0xf7])
-        self.delay_ms(100)
-
-        self.set_setting(self.VCM_DC_SETTING, [0x08])
-        self.set_setting(self.VCOM_AND_DATA_INTERVAL_SETTING, [0x47])
-        self.partial_set_lut()
-
-        self.send_command(self.PARTIAL_IN)
-        self.set_setting(self.PARTIAL_WINDOW,
-                         [x_start//256, x_start % 256,
-                          x_end // 256, x_end % 256 - 1,
-                          y_start // 256, y_start % 256,
-                          y_end // 256, y_end % 256 - 1,
-                          0x28])
-
-        # writes old data to sram for programming
-        self.send_command(self.DATA_START_TRANSMISSION_1)
-        for j in range(y_end - y_start):
-            idx = (y_start + j) * height + x_start // 8
-            for i in range((x_end - x_start) // 8):
-                self.send_data(self.frame_buffer[idx + i])
-
-        # writes new data to sram.
-        self.send_command(self.DATA_START_TRANSMISSION_2)
-        for j in range(y_end - y_start):
-            idx = (y_start + j) * height + x_start // 8
-            for i in range((x_end - x_start) // 8):
-                self.send_data(~self.frame_buffer[idx + i])
-
-        self.send_command(self.DISPLAY_REFRESH)   # display refresh
-        self.delay_ms(10)  # the delay here is necessary, 200us at least!!!
         self.turn_on_display()
 
     # def display_gray(self, frame_buffer):
@@ -333,11 +298,100 @@ class EPD4in2(drivers_partial.WavesharePartial,
     #     self.gray_set_lut()
     #     self.turn_on_display()
 
+    def display_full(self):
+
+        # TODO: optimize this as (needs performance check):
+        # self.send_command(self.DATA_START_TRANSMISSION_2, self.frame_buffer)
+
+        width = int(self.width // 8)
+        height = int(self.height)
+
+        self.send_command(self.DATA_START_TRANSMISSION_2)
+        for i in range(height):
+            for j in range(width):
+                self.send_data(self.frame_buffer[i * width + j])
+
+        self.turn_on_display()
+
+
+    def display_partial(self, x_start, y_start, x_end, y_end):
+
+        width = (self.width // 8)
+
+        x_start = int(x_start if x_start % 8 == 0 else x_start // 8 * 8 + 8)
+        x_end = int(x_end if x_end % 8 == 0 else x_end // 8 * 8 + 8)
+
+        self.set_setting(self.VCOM_AND_DATA_INTERVAL_SETTING, [0xf7])
+        self.delay_ms(100)
+
+        self.set_setting(self.VCM_DC_SETTING, [0x08])
+        self.set_setting(self.VCOM_AND_DATA_INTERVAL_SETTING, [0x47])
+        self.partial_set_lut()
+
+        self.send_command(self.PARTIAL_IN)
+        self.set_setting(self.PARTIAL_WINDOW,
+                         [x_start // 256, x_start % 256,
+                          x_end   // 256, x_end   % 256 - 1,
+                          y_start // 256, y_start % 256,
+                          y_end   // 256, y_end   % 256 - 1,
+                          0x28])
+
+        # writes old data to sram for programming
+        self.send_command(self.DATA_START_TRANSMISSION_1)
+        for j in range(y_end - y_start):
+            idx = (y_start + j) * width + x_start // 8
+            for i in range((x_end - x_start) // 8):
+                self.send_data(self.frame_buffer[idx + i])
+
+        # writes new data to sram.
+        self.send_command(self.DATA_START_TRANSMISSION_2)
+        for j in range(y_end - y_start):
+            idx = (y_start + j) * width + x_start // 8
+            for i in range((x_end - x_start) // 8):
+                self.send_data(~self.frame_buffer[idx + i])
+
+        self.send_command(self.DISPLAY_REFRESH)   # display refresh
+        self.delay_ms(10)  # the delay here is necessary, 200us at least!!!
+        self.turn_on_display()
+
     def sleep(self):
         self.send_command(0x02)  # power off
         self.wait_until_idle()
         self.send_command(0x07)  # deep sleep
         self.send_data(0xa5)
+
+    def frame_buffer_to_image(self):
+        im = Image.new('1', (self.width, self.height), "white")
+        pi = im.load()
+
+        for j in range(self.height):
+            idxj = j * self.width // 8
+            for i in range(self.width):
+                idiv, irem = divmod(i, 8)
+                mask = 0b10000000 >> irem
+                idxi = idiv
+                pi[i, j] = self.frame_buffer[idxi + idxj] & mask
+
+        return im
+
+    # When writing outside the range of the display will cause an error.
+    def fill(self, color, fillsize):
+        """Slow fill routine"""
+        div, rem = divmod(self.height, fillsize)
+
+        image = Image.new('1', (fillsize, self.width), color)
+        for i in range(0, div):
+            self.draw(i * fillsize, 0, image)
+
+        if rem != 0:
+            image = Image.new('1', (rem, self.width), color)
+            self.draw(div * fillsize, 0, image)
+
+    # def fill(self, color, fillsize):
+    #     """Slow fill routine"""
+    #     image = Image.new('1', (fillsize, self.height), color)
+    #     for x in range(0, self.height, fillsize):
+    #         self.draw(x, 0, image)
 
     def set_frame_buffer(self, x, y, image):
 
@@ -345,36 +399,23 @@ class EPD4in2(drivers_partial.WavesharePartial,
         imwidth, imheight = image_monocolor.size
         pixels = image_monocolor.load()
 
-        for j in range(y, y + imwidth):
-            idxj = j * self.height // 8
-            for i in range(x, x + imheight):
-                idiv = i // 8
-                irem = i % 8
-                mask = 0x01 << (7 - irem)
-                if pixels[j - y, self.height - (i - x) - 1] != 0:
-                    self.frame_buffer[idiv + idxj] |= mask
+        for j in range(imheight):
+            idxj = (y + j) * self.width // 8
+            for i in range(imwidth):
+                idiv, irem = divmod(x + i, 8)
+                mask = 0b10000000 >> irem
+                idxi = idiv
+                if pixels[i, j] != 0:
+                    self.frame_buffer[idxi + idxj] |= mask
                 else:
-                    self.frame_buffer[idiv + idxj] &= ~mask
-
-    # When writing outside the range of the display will cause an error.
-    def fill(self, color, fillsize):
-        """Slow fill routine"""
-        div, rem = divmod(self.width, fillsize)
-
-        image = Image.new('1', (fillsize, self.height), color)
-        for i in range(0, div):
-            self.draw(i * fillsize, 0, image)
-
-        if rem != 0:
-            image = Image.new('1', (rem, self.height), color)
-            self.draw(div * fillsize, 0, image)
+                    self.frame_buffer[idxi + idxj] &= ~mask
 
     def draw(self, x, y, image):
         """replace a particular area on the display with an image"""
 
         if self.partial_refresh:
-            self.set_frame_buffer(y, x, image)
-            self.display_partial(y, x, y + image.height, x + image.width)
+            self.set_frame_buffer(x, y, image)
+            self.display_partial(x, y, x + image.width, y + image.height)
         else:
             self.set_frame_buffer(0, 0, image)
             self.display_full()
