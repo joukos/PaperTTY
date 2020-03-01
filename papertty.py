@@ -604,6 +604,7 @@ def terminal(settings, vcsa, font, fontsize, noclear, nocursor, cursor, sleep, t
                     print('    (h) to change font size,')
                 print('    (c) to scrub,')
                 print('    (i) reinitialize display,')
+                print('    (r) do a full refresh,')
                 print('    (x) to exit,')
                 print('    anything else to continue.')
                 print('Command line arguments for current settings:\n    --font {} --size {} --spacing {}'.format(ptty.fontfile, ptty.fontsize, ptty.spacing))
@@ -659,6 +660,13 @@ def terminal(settings, vcsa, font, fontsize, noclear, nocursor, cursor, sleep, t
                     ptty.clear()
                     oldimage = None
                     oldbuff = None
+                elif ch == 'r':
+                    if oldimage:
+                        ptty.driver.reset()
+                        ptty.driver.init(partial=False)
+                        ptty.driver.draw(0, 0, oldimage)
+                        ptty.driver.reset()
+                        ptty.driver.init(ptty.partial)
 
             # if user or SIGUSR1 toggled the scrub flag, scrub display and start with a fresh image
             if flags['scrub_requested']:
