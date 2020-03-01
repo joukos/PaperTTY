@@ -1,5 +1,9 @@
 # PaperTTY
 
+## Partial refresh support for 4.2" *(2020-03-01)*
+
+Thanks to @gdkrmr, the 4.2" module now has a new driver that supports partial refresh. Note that now the default behavior is to partial updates and you'll need to add `--nopartial` to driver settings if you want to use the full refresh instead.
+
 ## Interactive Update *(2020-02-18)*
 
 Starting `terminal` with the `--interactive` option adds a menu to the Ctrl-C handler that allows you to change the font, font size and spacing on the fly. This should be helpful when trying out fonts.

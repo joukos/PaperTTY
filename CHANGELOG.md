@@ -1,5 +1,7 @@
 # Changelog
 
+- **2020-03-01**
+  - Added partial refresh support for 4.2".
 - **2020-02-18**
   - Added interactive mode.
 - **2020-01-25**

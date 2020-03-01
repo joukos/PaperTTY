@@ -24,7 +24,7 @@ All of the SPI displays listed on the Waveshare Wiki at the time of writing are 
   - **EPD 2.9" (monochrome) - [probably works, with partial refresh]**
   - **EPD 2.9" B (black/white/red)**
   - **EPD 2.9" C (black/white/yellow)** - should work with `EPD2in9b`
-  - **EPD 4.2" (monochrome)**
+  - **EPD 4.2" (monochrome)** [TESTED, with partial refresh]
   - **EPD 4.2" B (black/white/red)**
   - **EPD 4.2" C (black/white/yellow)** - should work with `EPD4in2b`
   - **EPD 5.83" (monochrome)**
