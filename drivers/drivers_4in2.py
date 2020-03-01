@@ -239,8 +239,9 @@ class EPD4in2(drivers_partial.WavesharePartial,
 
     def display_partial(self, x_start, y_start, x_end, y_end):
 
-        width = (self.width // 8)
+        width = self.width // 8
 
+        # TODO: use x_start // 8 * 9
         x_start = int(x_start if x_start % 8 == 0 else x_start // 8 * 8 + 8)
         x_end = int(x_end if x_end % 8 == 0 else x_end // 8 * 8 + 8)
 
@@ -263,6 +264,7 @@ class EPD4in2(drivers_partial.WavesharePartial,
         self.send_command(self.DATA_START_TRANSMISSION_1)
         for j in range(y_end - y_start):
             idx = (y_start + j) * width + x_start // 8
+            # TODO: optimize this by using send_data(array[from:to])
             for i in range((x_end - x_start) // 8):
                 self.send_data(self.frame_buffer[idx + i])
 
@@ -270,6 +272,7 @@ class EPD4in2(drivers_partial.WavesharePartial,
         self.send_command(self.DATA_START_TRANSMISSION_2)
         for j in range(y_end - y_start):
             idx = (y_start + j) * width + x_start // 8
+            # TODO: optimize this by using send_data(array[from:to])
             for i in range((x_end - x_start) // 8):
                 self.send_data(~self.frame_buffer[idx + i])
 
