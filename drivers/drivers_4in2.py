@@ -254,10 +254,10 @@ class EPD4in2(drivers_partial.WavesharePartial,
 
         self.send_command(self.PARTIAL_IN)
         self.set_setting(self.PARTIAL_WINDOW,
-                         [x_start // 256, x_start % 256,
-                          x_end   // 256, x_end   % 256 - 1,
-                          y_start // 256, y_start % 256,
-                          y_end   // 256, y_end   % 256 - 1,
+                         [x_start     // 256, x_start     % 256,
+                          (x_end - 1) // 256, (x_end - 1) % 256,
+                          y_start     // 256, y_start     % 256,
+                          (y_end - 1) // 256, (y_end - 1) % 256,
                           0x28])
 
         # writes old data to sram for programming
