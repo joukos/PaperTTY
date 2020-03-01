@@ -535,7 +535,7 @@ def terminal(settings, vcsa, font, fontsize, noclear, nocursor, cursor, sleep, t
         sys.exit(1)
 
     if nocursor:
-        print("--nocursor is deprectated. Use --cursor=none instead")
+        print("--nocursor is deprecated. Use --cursor=none instead")
         settings.args['cursor'] = None
 
     if cursor == 'default' or cursor == 'legacy':
