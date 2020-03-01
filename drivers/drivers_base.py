@@ -63,7 +63,7 @@ class DisplayDriver(ABC):
     def fill(self, color, fillsize):
         """Slow fill routine"""
         image = Image.new('1', (fillsize, self.height), color)
-        for x in range(0, self.width, fillsize):
+        for x in range(0, self.height, fillsize):
             self.draw(x, 0, image)
 
     def clear(self):
