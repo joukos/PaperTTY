@@ -57,6 +57,8 @@ class DisplayDriver(ABC):
 
     def scrub(self, fillsize=16):
         """Scrub display - only works properly with partial refresh"""
+        if not self.supports_partial:
+            raise RuntimeError("scrub only works properly with screens that have partial refresh support")
         self.fill(self.black, fillsize=fillsize)
         self.fill(self.white, fillsize=fillsize)
 
