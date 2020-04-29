@@ -395,7 +395,6 @@ class EPD7in5v2(WaveshareFull):
         self.send_data(0x07) # VCOM_HV, VGHL_LV[1], VGHL_LV[0]
         self.send_data(0x3f) # VDH
         self.send_data(0x3f) # VDL
-        self.send_data(0xff) # VDHR
 
         self.send_command(self.POWER_ON)
         self.wait_until_idle()
@@ -446,3 +445,36 @@ class EPD7in5v2(WaveshareFull):
         self.wait_until_idle()
         self.send_command(self.DEEP_SLEEP)
         self.send_data(0xA5)
+
+    def reset(self):
+        """
+        Mirroring behaviour in reference implementation:
+        https://github.com/waveshare/e-Paper/blob/702def06bcb75983c98b0f9d25d43c552c248eb0/RaspberryPi%26JetsonNano/python/lib/waveshare_epd/epd7in5_V2.py#L48-L54
+
+        The `reset` inherited from `WaveshareFull` did not work (`init` hanged at `wait_until_idle` after the `POWER_ON`
+        command was sent.
+
+        A quick scan of the other implementations indicates that the reset varies across devices (it's unclear
+        whether there is good reason for device specific differences or if the developer was just being inconsistent...)
+        e.g. significantly different delay times:
+        https://github.com/waveshare/e-Paper/blob/702def06bcb75983c98b0f9d25d43c552c248eb0/RaspberryPi%26JetsonNano/python/lib/waveshare_epd/epd1in54c.py#L46-L52
+        """
+        # Deliberately importing here to achieve same fail-on-use import behaviour as in `drivers_base.py`
+        import RPi.GPIO as GPIO
+
+        self.digital_write(self.RST_PIN, GPIO.HIGH)
+        self.delay_ms(200)
+        self.digital_write(self.RST_PIN, GPIO.LOW)
+        self.delay_ms(2)
+        self.digital_write(self.RST_PIN, GPIO.HIGH)
+        self.delay_ms(200)
+
+    def wait_until_idle(self):
+        """
+        Mirroring behaviour in reference implementation (i.e. differently to other implementations, we send command 0x71
+        and poll without sleep):
+        https://github.com/waveshare/e-Paper/blob/702def06bcb75983c98b0f9d25d43c552c248eb0/RaspberryPi%26JetsonNano/python/lib/waveshare_epd/epd7in5_V2.py#L68-L75
+        """
+        self.send_command(0x71)
+        while self.digital_read(self.BUSY_PIN) == 0:  # 0: busy, 1: idle
+            self.send_command(0x71)
