@@ -431,6 +431,41 @@ def get_driver_list():
     return '\n'.join(["{}{}".format(driver.ljust(15), order[driver]['desc']) for driver in order])
 
 
+def display_image(driver, image, stretch, no_resize, portrait, fill_color):
+    """
+    Display the given image using the given driver and options.
+    :param driver: device driver (subclass of `WaveshareEPD`)
+    :param image: image data to display
+    :param stretch: whether to stretch the image so that it fills the screen in both dimentions
+    :param no_resize: whether the image should not be resized if it does not fit the screen (will raise `RuntimeError`
+    if image is too large)
+    :param portrait: whether to rotate the image 90 degrees to the left to achieve "portrait orientation" (as defined by
+    this library)
+    :param fill_color: colour to fill space when image is resized but one dimension does not fill the screen
+    :return: the image that was rendered
+    """
+    if stretch and no_resize:
+        raise ValueError("Cannot set --no-resize with --stretch")
+
+    if portrait:
+        image = image.transpose(PIL.Image.ROTATE_90)
+    image_width, image_height = image.size
+
+    if (image_width, image_height) != (driver.width, driver.height):
+        if stretch:
+            image = image.resize((driver.width, driver.height))
+        else:
+            if no_resize and (image_width > driver.width or image_height > driver.height):
+                raise RuntimeError("Image ({0}x{1}) needs to be resized to fit the screen ({2}x{3})"
+                                   .format(image_width, image_height, driver.width, driver.height))
+            # Scales and pads
+            image = ImageOps.pad(image, (driver.width, driver.height), color=fill_color)
+
+    driver.draw(0, 0, image)
+
+    return image
+
+
 @click.group()
 @click.option('--driver', default=None, help='Select display driver')
 @click.option('--nopartial', is_flag=True, default=False, help="Don't use partial updates even if display supports it")
@@ -504,36 +539,17 @@ def stdin(settings, font, fontsize, width, portrait, nofold, spacing):
 @click.pass_obj
 def image(settings, image_location, stretch, no_resize, portrait, fill_color):
     """ Render image data given on stdin """
-    if stretch and no_resize:
-        raise ValueError("Cannot set --no-resize with --stretch")
-
-    if image_location is None or image_location == "-":
+    if image_location is None or image_location == '-':
         # XXX: logging to stdout, in line with the rest of this project
-        print("Reading image data from stdin... (set `--image` to load an image using a file path)")
+        print('Reading image data from stdin... (set "--image" to load an image using a file path)')
         image_data = BytesIO(sys.stdin.buffer.read())
         image = Image.open(image_data)
     else:
         image = Image.open(image_location)
 
-    if portrait:
-        image = image.transpose(PIL.Image.ROTATE_90)
-    image_width, image_height = image.size
-
     ptty = settings.get_init_tty()
-    display_width = ptty.driver.width
-    display_height = ptty.driver.height
 
-    if (image_width, image_height) != (display_width, display_height):
-        if stretch:
-            image = image.resize((display_width, display_height))
-        else:
-            if no_resize and (image_width > display_width or image_height > display_height):
-                raise RuntimeError("Image ({0}x{1}) needs to be resized to fit the screen ({2}x{3})"
-                                   .format(image_width, image_height, display_width, display_height))
-            # Scales and pads
-            image = ImageOps.pad(image, (display_width, display_height), color=fill_color)
-
-    ptty.driver.draw(0, 0, image)
+    display_image(ptty.driver, image, stretch, no_resize, portrait, fill_color)
 
 
 @click.command()
