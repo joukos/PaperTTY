@@ -44,6 +44,8 @@ from collections import OrderedDict
 from vncdotool import api
 # TODO
 from io import BytesIO
+# TODO
+import PIL
 
 
 class PaperTTY:
@@ -492,17 +494,42 @@ def stdin(settings, font, fontsize, width, portrait, nofold, spacing):
 
 
 @click.command()
+@click.option('--stretch', default=False, is_flag=True,
+              help='Stretch image so that it fills the entire screen (may distort your image!)')
+@click.option('--no-resize', default=False, is_flag=True,
+              help='Do not resize image to fit the screen (an error will occur if the image is too large!)')
+@click.option('--portrait', default=False, is_flag=True, help='Use portrait orientation', show_default=True)
+@click.option('--fill-color', default='white', help='Colour to pad resized image with', show_default=True)
 @click.pass_obj
-def image(settings):
+def image(settings, stretch, no_resize, portrait, fill_color):
     """ Render image data given on stdin """
+    if stretch and no_resize:
+        # TODO: can this be defined using click?
+        raise ValueError("Cannot set --no-resize with --stretch")
+
     # XXX: logging to stdout, in line with the rest of this project
     print("Reading image data from stdin... (this will wait forever if no data is given!)")
     image_data = BytesIO(sys.stdin.buffer.read())
 
     image = Image.open(image_data)
-    image = image.resize((800, 480))
+    if portrait:
+        image = image.transpose(PIL.Image.ROTATE_90)
+    image_width, image_height = image.size
 
     ptty = settings.get_init_tty()
+    display_width = ptty.driver.width
+    display_height = ptty.driver.height
+
+    if (image_width, image_height) != (display_width, display_height):
+        if stretch:
+            image = image.resize((display_width, display_height))
+        else:
+            if no_resize and (image_width > display_width or image_height > display_height):
+                raise RuntimeError("Image ({0}x{1}) needs to be resized to fit the screen ({2}x{3})"
+                                   .format(image_width, image_height, display_width, display_height))
+            # Scales and pads
+            image = ImageOps.pad(image, (display_width, display_height), color=fill_color)
+
     ptty.driver.draw(0, 0, image)
 
 
