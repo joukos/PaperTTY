@@ -42,6 +42,8 @@ from PIL import Image, ImageChops, ImageDraw, ImageFont, ImageOps
 from collections import OrderedDict
 # for VNC
 from vncdotool import api
+# TODO
+from io import BytesIO
 
 
 class PaperTTY:
@@ -490,6 +492,21 @@ def stdin(settings, font, fontsize, width, portrait, nofold, spacing):
 
 
 @click.command()
+@click.pass_obj
+def image(settings):
+    """ Render image data given on stdin """
+    # XXX: logging to stdout, in line with the rest of this project
+    print("Reading image data from stdin... (this will wait forever if no data is given!)")
+    image_data = BytesIO(sys.stdin.buffer.read())
+
+    image = Image.open(image_data)
+    image = image.resize((800, 480))
+
+    ptty = settings.get_init_tty()
+    ptty.driver.draw(0, 0, image)
+
+
+@click.command()
 @click.option('--host', default="localhost", help="VNC host to connect to", show_default=True)
 @click.option('--display', default="0", help="VNC display to use (0 = port 5900)", show_default=True)
 @click.option('--password', default=None, help="VNC password")
@@ -711,6 +728,7 @@ if __name__ == '__main__':
     cli.add_command(scrub)
     cli.add_command(terminal)
     cli.add_command(stdin)
+    cli.add_command(image)
     cli.add_command(vnc)
     cli.add_command(list_drivers)
     cli()
