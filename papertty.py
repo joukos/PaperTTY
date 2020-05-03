@@ -494,6 +494,7 @@ def stdin(settings, font, fontsize, width, portrait, nofold, spacing):
 
 
 @click.command()
+@click.option('--image', 'image_location', help='Location of image to display (omit for stdin)', show_default=True)
 @click.option('--stretch', default=False, is_flag=True,
               help='Stretch image so that it fills the entire screen (may distort your image!)')
 @click.option('--no-resize', default=False, is_flag=True,
@@ -501,17 +502,19 @@ def stdin(settings, font, fontsize, width, portrait, nofold, spacing):
 @click.option('--portrait', default=False, is_flag=True, help='Use portrait orientation', show_default=True)
 @click.option('--fill-color', default='white', help='Colour to pad resized image with', show_default=True)
 @click.pass_obj
-def image(settings, stretch, no_resize, portrait, fill_color):
+def image(settings, image_location, stretch, no_resize, portrait, fill_color):
     """ Render image data given on stdin """
     if stretch and no_resize:
-        # TODO: can this be defined using click?
         raise ValueError("Cannot set --no-resize with --stretch")
 
-    # XXX: logging to stdout, in line with the rest of this project
-    print("Reading image data from stdin... (this will wait forever if no data is given!)")
-    image_data = BytesIO(sys.stdin.buffer.read())
+    if image_location is None or image_location == "-":
+        # XXX: logging to stdout, in line with the rest of this project
+        print("Reading image data from stdin... (set `--image` to load an image using a file path)")
+        image_data = BytesIO(sys.stdin.buffer.read())
+        image = Image.open(image_data)
+    else:
+        image = Image.open(image_location)
 
-    image = Image.open(image_data)
     if portrait:
         image = image.transpose(PIL.Image.ROTATE_90)
     image_width, image_height = image.size
