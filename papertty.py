@@ -451,19 +451,26 @@ def display_image(driver, image, stretch, no_resize, portrait, fill_color):
         image = image.transpose(PIL.Image.ROTATE_90)
     image_width, image_height = image.size
 
-    if (image_width, image_height) != (driver.width, driver.height):
-        if stretch:
-            image = image.resize((driver.width, driver.height))
+    if stretch:
+        if (image_width, image_height) == (driver.width, driver.height):
+            output_image = image
         else:
-            if no_resize and (image_width > driver.width or image_height > driver.height):
+            output_image = image.resize((driver.width, driver.height))
+    else:
+        if no_resize:
+            if image_width > driver.width or image_height > driver.height:
                 raise RuntimeError("Image ({0}x{1}) needs to be resized to fit the screen ({2}x{3})"
                                    .format(image_width, image_height, driver.width, driver.height))
+            # Pad only
+            output_image = Image.new(image.mode, (driver.width, driver.height), color=fill_color)
+            output_image.paste(image, (0, 0))
+        else:
             # Scales and pads
-            image = ImageOps.pad(image, (driver.width, driver.height), color=fill_color)
+            output_image = ImageOps.pad(image, (driver.width, driver.height), color=fill_color)
 
-    driver.draw(0, 0, image)
+    driver.draw(0, 0, output_image)
 
-    return image
+    return output_image
 
 
 @click.group()
