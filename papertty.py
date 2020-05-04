@@ -42,10 +42,8 @@ from PIL import Image, ImageChops, ImageDraw, ImageFont, ImageOps
 from collections import OrderedDict
 # for VNC
 from vncdotool import api
-# TODO
+# for reading stdin data for use with Pillow
 from io import BytesIO
-# TODO
-import PIL
 
 
 class PaperTTY:
@@ -431,7 +429,7 @@ def get_driver_list():
     return '\n'.join(["{}{}".format(driver.ljust(15), order[driver]['desc']) for driver in order])
 
 
-def display_image(driver, image, stretch, no_resize, fill_color):
+def display_image(driver, image, stretch=False, no_resize=False, fill_color="white"):
     """
     Display the given image using the given driver and options.
     :param driver: device driver (subclass of `WaveshareEPD`)
@@ -538,20 +536,20 @@ def stdin(settings, font, fontsize, width, portrait, nofold, spacing):
 @click.option('--no-resize', default=False, is_flag=True,
               help='Do not resize image to fit the screen (an error will occur if the image is too large!)')
 @click.option('--portrait', default=False, is_flag=True, help='Use portrait orientation', show_default=True)
-@click.option('--fill-color', default='white', help='Colour to pad resized image with', show_default=True)
+@click.option('--fill-color', default='white', help='Colour to pad image with', show_default=True)
 @click.pass_obj
 def image(settings, image_location, stretch, no_resize, portrait, fill_color):
-    """ Render image data given on stdin """
+    """ Display an image """
     if image_location is None or image_location == '-':
         # XXX: logging to stdout, in line with the rest of this project
-        print('Reading image data from stdin... (set "--image" to load an image using a file path)')
+        print('Reading image data from stdin... (set "--image" to load an image from a given file path)')
         image_data = BytesIO(sys.stdin.buffer.read())
         image = Image.open(image_data)
     else:
         image = Image.open(image_location)
 
     if portrait:
-        image = image.transpose(PIL.Image.ROTATE_90)
+        image = image.transpose(Image.ROTATE_90)
 
     ptty = settings.get_init_tty()
 
