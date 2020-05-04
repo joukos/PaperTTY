@@ -431,7 +431,7 @@ def get_driver_list():
     return '\n'.join(["{}{}".format(driver.ljust(15), order[driver]['desc']) for driver in order])
 
 
-def display_image(driver, image, stretch, no_resize, portrait, fill_color):
+def display_image(driver, image, stretch, no_resize, fill_color):
     """
     Display the given image using the given driver and options.
     :param driver: device driver (subclass of `WaveshareEPD`)
@@ -439,16 +439,12 @@ def display_image(driver, image, stretch, no_resize, portrait, fill_color):
     :param stretch: whether to stretch the image so that it fills the screen in both dimentions
     :param no_resize: whether the image should not be resized if it does not fit the screen (will raise `RuntimeError`
     if image is too large)
-    :param portrait: whether to rotate the image 90 degrees to the left to achieve "portrait orientation" (as defined by
-    this library)
     :param fill_color: colour to fill space when image is resized but one dimension does not fill the screen
     :return: the image that was rendered
     """
     if stretch and no_resize:
-        raise ValueError("Cannot set --no-resize with --stretch")
+        raise ValueError('Cannot set "no-resize" with "stretch"')
 
-    if portrait:
-        image = image.transpose(PIL.Image.ROTATE_90)
     image_width, image_height = image.size
 
     if stretch:
@@ -459,7 +455,7 @@ def display_image(driver, image, stretch, no_resize, portrait, fill_color):
     else:
         if no_resize:
             if image_width > driver.width or image_height > driver.height:
-                raise RuntimeError("Image ({0}x{1}) needs to be resized to fit the screen ({2}x{3})"
+                raise RuntimeError('Image ({0}x{1}) needs to be resized to fit the screen ({2}x{3})'
                                    .format(image_width, image_height, driver.width, driver.height))
             # Pad only
             output_image = Image.new(image.mode, (driver.width, driver.height), color=fill_color)
@@ -554,9 +550,12 @@ def image(settings, image_location, stretch, no_resize, portrait, fill_color):
     else:
         image = Image.open(image_location)
 
+    if portrait:
+        image = image.transpose(PIL.Image.ROTATE_90)
+
     ptty = settings.get_init_tty()
 
-    display_image(ptty.driver, image, stretch, no_resize, portrait, fill_color)
+    display_image(ptty.driver, image, stretch, no_resize, fill_color)
 
 
 @click.command()
