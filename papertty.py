@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
+# Colin Nolan, 2020
 # Jouko Strömmer, 2018
 # Copyright and related rights waived via CC0
 # https://creativecommons.org/publicdomain/zero/1.0/legalcode
