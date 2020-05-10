@@ -189,8 +189,8 @@ See the [driver page](drivers/) for details and the supported models.
 1. **Clone the repo somewhere and enter the directory**
    - `git clone https://github.com/joukos/PaperTTY.git`
    - `cd PaperTTY`
-2. **Install virtualenv and libopenjp2**
-   - `sudo apt install virtualenvwrapper python3-virtualenv libopenjp2-7`
+2. **Install virtualenv, libopenjp2 and libtiff5**
+   - `sudo apt install virtualenvwrapper python3-virtualenv libopenjp2-7 libtiff5`
 3. **Source the wrapper to use `mkvirtualenv` (*you may want to add this to `~/.bashrc`*)**
    - `source /usr/share/virtualenvwrapper/virtualenvwrapper.sh`
 4. **Create the Python 3 virtualenv and install packages in `requirements.txt`**
