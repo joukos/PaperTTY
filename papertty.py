@@ -447,14 +447,14 @@ def display_image(driver, image, stretch=False, no_resize=False, fill_color="whi
     if stretch and no_resize:
         raise ValueError('Cannot set "no-resize" with "stretch"')
 
-    image_width, image_height = image.size
-
     if mirror:
         image = ImageOps.mirror(image)
     if flip:
         image = ImageOps.flip(image)
     if rotate:
         image = image.rotate(rotate, expand=True, fillcolor=fill_color)
+        
+    image_width, image_height = image.size
 
     if stretch:
         if (image_width, image_height) == (driver.width, driver.height):
