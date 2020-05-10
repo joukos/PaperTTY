@@ -72,8 +72,8 @@ class WaveshareFull(WaveshareEPD):
         image_monocolor = image.convert('1')
         imwidth, imheight = image_monocolor.size
         if imwidth != self.width or imheight != self.height:
-            raise ValueError('Image must be same dimensions as display \
-                ({0}x{1}).'.format(self.width, self.height))
+            raise ValueError('Image must be same dimensions as display: required ({0}x{1}), got ({2}x{3})'
+                             .format(self.width, self.height, imwidth, imheight))
 
         pixels = image_monocolor.load()
         for y in range(self.height):
