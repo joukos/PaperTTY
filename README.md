@@ -1,5 +1,9 @@
 # PaperTTY
 
+## Image display command
+
+@colin-nolan has contributed a subcommand to display image files on the screen, allowing to test the displays or easily make a photo slideshow or similar. Try `image --help` to check it out.
+
 ## Partial refresh support for 4.2" *(2020-03-01)*
 
 Thanks to @gdkrmr, the 4.2" module now has a new driver that supports partial refresh. Note that now the default behavior is to do partial updates and you'll need to add `--nopartial` to driver settings if you want to use the full refresh instead.
