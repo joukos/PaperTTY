@@ -575,6 +575,7 @@ def image(settings, image_location, stretch, no_resize, fill_color, mirror, flip
 @click.option('--fullevery', default=50, show_default=True, help="# of partial updates between full updates")
 @click.pass_obj
 def vnc(settings, host, display, password, rotate, invert, sleep, fullevery):
+    """Display a VNC desktop"""
     ptty = settings.get_init_tty()
     ptty.showvnc(host, display, password, int(rotate) if rotate else None, invert, sleep, fullevery)
 
