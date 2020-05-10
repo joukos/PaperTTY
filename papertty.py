@@ -430,7 +430,7 @@ def get_driver_list():
     return '\n'.join(["{}{}".format(driver.ljust(15), order[driver]['desc']) for driver in order])
 
 
-def display_image(driver, image, stretch=False, no_resize=False, fill_color="white"):
+def display_image(driver, image, stretch=False, no_resize=False, fill_color="white", rotate=None, mirror=None, flip=None):
     """
     Display the given image using the given driver and options.
     :param driver: device driver (subclass of `WaveshareEPD`)
@@ -439,12 +439,22 @@ def display_image(driver, image, stretch=False, no_resize=False, fill_color="whi
     :param no_resize: whether the image should not be resized if it does not fit the screen (will raise `RuntimeError`
     if image is too large)
     :param fill_color: colour to fill space when image is resized but one dimension does not fill the screen
+    :param rotate: rotate the image by arbitrary degrees
+    :param mirror: flip the image horizontally
+    :param flip: flip the image vertically
     :return: the image that was rendered
     """
     if stretch and no_resize:
         raise ValueError('Cannot set "no-resize" with "stretch"')
 
     image_width, image_height = image.size
+
+    if mirror:
+        image = ImageOps.mirror(image)
+    if flip:
+        image = ImageOps.flip(image)
+    if rotate:
+        image = image.rotate(rotate, expand=True, fillcolor=fill_color)
 
     if stretch:
         if (image_width, image_height) == (driver.width, driver.height):
@@ -532,14 +542,16 @@ def stdin(settings, font, fontsize, width, portrait, nofold, spacing):
 
 @click.command()
 @click.option('--image', 'image_location', help='Location of image to display (omit for stdin)', show_default=True)
-@click.option('--stretch', default=False, is_flag=True,
+@click.option('--stretch', default=False, is_flag=True, show_default=True,
               help='Stretch image so that it fills the entire screen (may distort your image!)')
-@click.option('--no-resize', default=False, is_flag=True,
+@click.option('--no-resize', default=False, is_flag=True, show_default=True,
               help='Do not resize image to fit the screen (an error will occur if the image is too large!)')
-@click.option('--portrait', default=False, is_flag=True, help='Use portrait orientation', show_default=True)
 @click.option('--fill-color', default='white', help='Colour to pad image with', show_default=True)
+@click.option('--mirror', default=False, is_flag=True, help='Mirror horizontally', show_default=True)
+@click.option('--flip', default=False, is_flag=True, help='Mirror vertically', show_default=True)
+@click.option('--rotate', default=0, help='Rotate the image by N degrees', show_default=True, type=float)
 @click.pass_obj
-def image(settings, image_location, stretch, no_resize, portrait, fill_color):
+def image(settings, image_location, stretch, no_resize, fill_color, mirror, flip, rotate):
     """ Display an image """
     if image_location is None or image_location == '-':
         # XXX: logging to stdout, in line with the rest of this project
@@ -549,12 +561,8 @@ def image(settings, image_location, stretch, no_resize, portrait, fill_color):
     else:
         image = Image.open(image_location)
 
-    if portrait:
-        image = image.transpose(Image.ROTATE_90)
-
     ptty = settings.get_init_tty()
-
-    display_image(ptty.driver, image, stretch, no_resize, fill_color)
+    display_image(ptty.driver, image, stretch=stretch, no_resize=no_resize, fill_color=fill_color, rotate=rotate, mirror=mirror, flip=flip)
 
 
 @click.command()
