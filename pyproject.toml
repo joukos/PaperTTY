@@ -1,0 +1,17 @@
+[tool.poetry]
+name = "papertty"
+version = "0.1.0"
+description = ""
+authors = ["Jouko Strömmer <jouko.strommer@iki.fi>"]
+
+[tool.poetry.dependencies]
+click = "^7.1.2"
+Pillow = "7.1.2"
+python = "^3.5"
+"RPi.GPIO" = "^0.7.0"
+spidev = "^3.4"
+vncdotool = "^1.0.0"
+
+[build-system]
+requires = ["poetry>=0.12"]
+build-backend = "poetry.masonry.api"
