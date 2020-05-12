@@ -784,12 +784,14 @@ def terminal(settings, vcsa, font, fontsize, noclear, nocursor, cursor, sleep, t
                         time.sleep(float(sleep))
 
 
+# add all the CLI commands
+cli.add_command(scrub)
+cli.add_command(terminal)
+cli.add_command(stdin)
+cli.add_command(image)
+cli.add_command(vnc)
+cli.add_command(list_drivers)
+
+
 if __name__ == '__main__':
-    # add all the CLI commands
-    cli.add_command(scrub)
-    cli.add_command(terminal)
-    cli.add_command(stdin)
-    cli.add_command(image)
-    cli.add_command(vnc)
-    cli.add_command(list_drivers)
     cli()

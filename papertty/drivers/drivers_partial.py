@@ -13,11 +13,10 @@
 #
 #     You should have received a copy of the GNU General Public License
 #     along with this program.  If not, see <https://www.gnu.org/licenses/>.
+from papertty.drivers.drivers_base import WaveshareEPD
 
-from papertty.drivers import drivers_base
 
-
-class WavesharePartial(drivers_base.WaveshareEPD):
+class WavesharePartial(WaveshareEPD):
     """Displays that support partial refresh (*monochrome*): 1.54", 2.13", 2.9". 
     The code is almost entirely identical with these, just small differences in the 2.13"."""
 

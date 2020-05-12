@@ -12,6 +12,9 @@ python = "^3.5"
 spidev = "^3.4"
 vncdotool = "^1.0.0"
 
+[tool.poetry.scripts]
+papertty = "papertty.cli:cli"
+
 [build-system]
 requires = ["poetry>=0.12"]
 build-backend = "poetry.masonry.api"

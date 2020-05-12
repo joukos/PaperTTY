@@ -2,6 +2,7 @@ class EPDconst():
     """Contains constants common to all Waveshare e-Ink displays"""
     pass
 
+
 class EPD4in2const(EPDconst):
 
     # These are very similar to the ones in WaveshareFull, but very different
