@@ -127,7 +127,7 @@ As always, create issues if there's problems. I'd also be very interested if som
 
 ![](pics/logo.jpg)
 
-This is an experimental command-line driven Python module to render the contents of a Linux virtual terminal (`/dev/tty[1-63]`) **or standard input** onto a [Waveshare](https://www.waveshare.com/) e-Paper display. See [list of supported displays](drivers/README.md).
+This is an experimental command-line driven Python module to render the contents of a Linux virtual terminal (`/dev/tty[1-63]`) **or standard input** onto a [Waveshare](https://www.waveshare.com/) e-Paper display. See [list of supported displays](papertty/drivers/README.md).
 
 *Note: Testing has been minimal and I probably forgot something, so 'caveat utilitor'. I am also not affiliated with Waveshare in any way.*
 
@@ -178,7 +178,7 @@ All of the code was written for Raspbian Stretch and Python 3.5+. These instruct
 
 The code includes a reimplementation/refactoring of the Waveshare [reference drivers](https://github.com/soonuse/epd-library-python) - unlike the rest of the code which is CC0, **the drivers have the GPL 3.0 license**, because that's what Waveshare used. The drivers for models that aren't in the repo have been acquired from their Wiki's demo code packages.
 
-See the [driver page](drivers/) for details and the supported models.
+See the [driver page](papertty/drivers/) for details and the supported models.
 
 *The earlier, initial version of PaperTTY (tag: `v0.01`) did not have instructions for using virtualenv (though it would work) - you can still run it as before using the system packages and alongside this new version. Using the virtualenv means that PIL and Pillow can also coexist on the same system.*
 

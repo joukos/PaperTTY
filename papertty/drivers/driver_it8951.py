@@ -1,5 +1,5 @@
 from PIL import Image
-from drivers.drivers_base import DisplayDriver
+from papertty.drivers import DisplayDriver
 import array
 import struct
 import time

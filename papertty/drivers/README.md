@@ -74,7 +74,7 @@ Functionality has not (intentionally) been removed from the drivers so you shoul
 # This will draw a black rectangle to the corner of the display (2.13" B/W)
 
 # Import the required driver/group
-import drivers.drivers_partial as drivers_partial
+from papertty import drivers as drivers_partial
 from PIL import Image, ImageDraw
 
 # Instantiate

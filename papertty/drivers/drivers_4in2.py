@@ -15,7 +15,7 @@
 #     You should have received a copy of the GNU General Public License
 #     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from drivers import drivers_partial
+from papertty.drivers import drivers_partial
 from drivers import drivers_consts
 from PIL import Image
 

@@ -14,7 +14,7 @@
 #     You should have received a copy of the GNU General Public License
 #     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from drivers import drivers_base
+from papertty.drivers import drivers_base
 
 
 class WavesharePartial(drivers_base.WaveshareEPD):
