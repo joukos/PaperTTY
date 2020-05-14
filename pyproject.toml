@@ -1,8 +1,11 @@
 [tool.poetry]
 name = "papertty"
 version = "0.1.0"
-description = ""
+description = "Python module to render a TTY or VNC on e-ink"
 authors = ["Jouko Strömmer <jouko.strommer@iki.fi>"]
+readme = "README.md"
+repository = "https://github.com/joukos/PaperTTY"
+homepage = "https://github.com/joukos/PaperTTY"
 
 [tool.poetry.dependencies]
 click = "^7.1.2"
