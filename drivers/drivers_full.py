@@ -451,7 +451,7 @@ class EPD7in5v2(WaveshareFull):
         Mirroring behaviour in reference implementation:
         https://github.com/waveshare/e-Paper/blob/702def06bcb75983c98b0f9d25d43c552c248eb0/RaspberryPi%26JetsonNano/python/lib/waveshare_epd/epd7in5_V2.py#L48-L54
 
-        The earlier implementation of `reset` inherited from `WaveshareFull` did not work with some units 
+        The earlier implementation of `reset` inherited from `WaveshareFull` did not work with some units
         (`init` hanged at `wait_until_idle` after the `POWER_ON` command was sent).
 
         A quick scan of the other implementations indicates that the reset varies across devices (it's unclear
@@ -477,4 +477,5 @@ class EPD7in5v2(WaveshareFull):
         """
         self.send_command(0x71)
         while self.digital_read(self.BUSY_PIN) == 0:  # 0: busy, 1: idle
+            self.delay_ms(20)
             self.send_command(0x71)
