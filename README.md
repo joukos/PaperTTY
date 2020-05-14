@@ -63,12 +63,12 @@ The way this works is pretty simple: PaperTTY will connect to the VNC server, th
 
 ### Quick start
 
-- Install PaperTTY as usual
-   - `requirements.txt` is updated to include `vncdotool` - run `pip install -r requirements.txt` if you have an existing virtualenv
+- Install PaperTTY from PyPi: 
+   - `pip install papertty`
 - Start a VNC server somewhere (on the RPi for example)
    - ie. `vncserver -geometry 250x128 :1`
 - Run PaperTTY as usual, but use the `vnc` subcommand (see `--help` for options)
-   - ie. `sudo ~/.virtualenvs/papertty/bin/python3 ./papertty.py --driver epd2in13 vnc --display 1 --password supAPass --sleep 0.1 --rotate 90`
+   - ie. `sudo papertty --driver epd2in13 vnc --display 1 --password supAPass --sleep 0.1 --rotate 90`
    - This would (by default) connect to `localhost`, display `1` (= port 5901), using the 2.13" driver, specifies the password, sleeps 0.1 seconds after each update, and rotates the screen by 90 degrees
 - If image looks wonky, make sure you have the right orientation for the VNC server (ie. `-geometry 300x400` vs. `-geometry 400x300`) and the correct `--rotate` value.
 
@@ -86,8 +86,8 @@ So, you have your nice display and a RPi that you want to combine into a cool e-
   export $(sudo x11vnc -findauth)	# find the X authority file (probably /var/run/lightdm/root/:0)
   sudo x11vnc -usepw -display :0 -forever	# start x11vnc
   # tmux window/pane #1
-  sudo /home/pi/.virtualenvs/papertty/bin/python papertty.py --driver epd2in13 scrub      # scrub for clear image
-  sudo /home/pi/.virtualenvs/papertty/bin/python papertty.py --driver epd2in13 vnc --display 0 --password supAPass --sleep 0.1 --rotate 90   # display the session
+  sudo papertty --driver epd2in13 scrub      # scrub for clear image
+  sudo papertty --driver epd2in13 vnc --display 0 --password supAPass --sleep 0.1 --rotate 90   # display the session
   ```
 - If all went well, you should now be able to see the login screen (or whatever is in your display :0) and can interact with the GUI using mouse and keyboard plugged into the RPi, making it a cool standalone unit.
 
@@ -190,29 +190,21 @@ See the [driver page](papertty/drivers/) for details and the supported models.
 
 #### Steps
 
-1. **Clone the repo somewhere and enter the directory**
-   - `git clone https://github.com/joukos/PaperTTY.git`
-   - `cd PaperTTY`
-2. **Install virtualenv, libopenjp2 and libtiff5**
+1. **Install virtualenv, libopenjp2 and libtiff5**
    - `sudo apt install virtualenvwrapper python3-virtualenv libopenjp2-7 libtiff5`
 3. **Source the wrapper to use `mkvirtualenv` (*you may want to add this to `~/.bashrc`*)**
    - `source /usr/share/virtualenvwrapper/virtualenvwrapper.sh`
 4. **Create the Python 3 virtualenv and install packages in `requirements.txt`**
-   - `mkvirtualenv -p /usr/bin/python3 -r requirements.txt papertty`
+   - `mkvirtualenv -p /usr/bin/python3 -i papertty requirements.txt papertty`
    - This will create `~/.virtualenvs/papertty` which contains the required environment
 5. **After creating the virtualenv, it should become active and you should see `(papertty)` on your prompt**
    - **Note:** the software needs to be run with `sudo` in the typical case, *so you need to explicitly start the interpreter within the virtualenv - otherwise the program attempts to import system packages instead*
-   - **You should now be able to run `sudo ~/.virtualenvs/papertty/bin/python3 ./papertty.py list` to see the available drivers and start using the software**
+   - **You should now be able to run `sudo papertty list` to see the available drivers and start using the software**
 6. **Not really needed, but to (de)activate the virtualenv afterwards, run:**
    -  `~/.virtualenvs/papertty/bin/activate` - activate the virtualenv
       -  Or, `workon papertty` if you have sourced `virtualenvwrapper.sh`
    -  `deactivate` - deactivate the virtualenv
 
-#### Alternative install without virtualenv, using system packages
-
-- If you don't care to use the virtualenv, just install the requirements as system packages:
-  - `sudo apt install python3-rpi.gpio python3-spidev python3-pil python3-click`
-  - And run the program directly: `sudo ./papertty.py list`
 
 ## Fonts
 
@@ -247,7 +239,7 @@ All font options expect a path to the font file - the system font directories ar
 
 ## Usage
 
-**If you have the requirements installed in a virtualenv, remember to use its interpreter when running the program with sudo or being root:**  `sudo ~/.virtualenvs/papertty/bin/python3 ./papertty.py` 
+**If you have PaperTTY installed in a virtualenv, remember to use its interpreter when running the program with sudo or being root:**  `sudo ~/.virtualenvs/papertty/bin/python3 papertty` 
 
 - You'll want to `sudo` unless you've set it up so that SPI works without and you've given read access to `/dev/vcsa*`
 
@@ -277,7 +269,7 @@ These should come before the subcommands and they control general settings.
 
 ```sh
 # Example
-sudo ./papertty.py list
+sudo papertty list
 ```
 
 #### `scrub` - Scrub display
@@ -294,7 +286,7 @@ Option | Description | Default
 
 ```sh
 # Example
-sudo ./papertty.py --driver epd2in13 scrub
+sudo papertty --driver epd2in13 scrub
 ```
 
 #### `stdin` - Render standard input
@@ -313,7 +305,7 @@ Option | Description | Default
 
 ```sh
 # Example
-cowsay "Hello World" | sudo ./papertty.py --driver epd2in13 stdin --nofold
+cowsay "Hello World" | sudo papertty --driver epd2in13 stdin --nofold
 ```
 
 #### `terminal` - Render a virtual terminal
@@ -356,14 +348,14 @@ Option | Description | Default
 # Examples
 
 # by default the first virtual terminal (/dev/vcsa1 == /dev/tty1) is displayed
-sudo ./papertty.py --driver epd2in13 terminal
+sudo papertty --driver epd2in13 terminal
 
 # set font size to 16, update every 10 seconds, set terminal rows/cols to 10x20
-sudo ./papertty.py --driver epd2in13 terminal --size 16 --sleep 10 --rows 10 --cols 20
+sudo papertty --driver epd2in13 terminal --size 16 --sleep 10 --rows 10 --cols 20
 
 # auto-fit terminal rows/cols for the font and use a bitmap font
 # (fitting may not work for very small fonts in portrait mode because of terminal restrictions)
-sudo ./papertty.py --driver epd2in13 terminal --autofit --font myfont.pil
+sudo papertty --driver epd2in13 terminal --autofit --font myfont.pil
 ```
 
 ## How to use the terminal
@@ -419,7 +411,7 @@ To have the display turn on at boot, first **edit** the command you're happy wit
 # Also, when booting up after a power cycle the display may have some artifacts on it, so 
 # you may want to add --scrub to get a clean display (during boot it's a bit slower than usual)
 VENV="/home/pi/.virtualenvs/papertty/bin/python3"
-${VENV} papertty.py --driver epd2in13 terminal --autofit
+${VENV} papertty --driver epd2in13 terminal --autofit
 ```
 
 Then make sure you have the right paths set in the service file:
