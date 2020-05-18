@@ -2,4 +2,4 @@ Pillow
 RPi.GPIO
 spidev
 click
-vncdotool
+vncdotool==0.13.0
