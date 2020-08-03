@@ -23,6 +23,8 @@ try:
     import RPi.GPIO as GPIO
 except ImportError:
     pass
+except RuntimeError as e:
+    print(str(e))
 
 # The driver works as follows:
 #
