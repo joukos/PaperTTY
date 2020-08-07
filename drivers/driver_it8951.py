@@ -8,6 +8,8 @@ try:
     import RPi.GPIO as GPIO
 except ImportError:
     pass
+except RuntimeError as e:
+    print(str(e))
 
 class IT8951(DisplayDriver):
     """A generic driver for displays that use a IT8951 controller board.
