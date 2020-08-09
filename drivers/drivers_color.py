@@ -15,6 +15,7 @@
 #     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 from drivers.drivers_full import WaveshareFull
+from PIL import Image
 
 
 class WaveshareColor(WaveshareFull):
@@ -313,7 +314,13 @@ class EPD5in65f(WaveshareColor):
 
     def get_frame_buffer(self, image, reverse=False):
         buf = [0x00] * int(self.width * self.height / 2)
-        image_rgb = image.convert('RGB')
+
+        # quantize image with palette of possible colors
+        image_palette = Image.new('P', (1, 1))
+        image_palette.putpalette(([0, 0, 0, 255, 255, 255, 0, 255, 0, 0, 0, 255, 255, 0, 0, 255, 255, 0, 255, 128, 0]
+                                  + [0, 0, 0]) * 32) # multiply by 32 to pad palette to reach required length of 768
+        image_rgb = image.quantize(palette=image_palette).convert('RGB')
+
         imwidth, imheight = image_rgb.size
 
         if imwidth != self.width or imheight != self.height:
