@@ -15,7 +15,8 @@
 #     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 from PIL import Image, ImageDraw
-from drivers.drivers_color import WaveshareColor
+
+from papertty.drivers.drivers_color import WaveshareColor
 
 
 class WaveshareColorDraw(WaveshareColor):

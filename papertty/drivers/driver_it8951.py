@@ -1,8 +1,10 @@
 from PIL import Image
-from drivers.drivers_base import DisplayDriver
 import array
 import struct
 import time
+
+from papertty.drivers.drivers_base import DisplayDriver
+
 try:
     import spidev
     import RPi.GPIO as GPIO
@@ -10,6 +12,7 @@ except ImportError:
     pass
 except RuntimeError as e:
     print(str(e))
+
 
 class IT8951(DisplayDriver):
     """A generic driver for displays that use a IT8951 controller board.

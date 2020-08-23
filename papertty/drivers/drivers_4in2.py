@@ -15,9 +15,10 @@
 #     You should have received a copy of the GNU General Public License
 #     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from drivers import drivers_partial
-from drivers import drivers_consts
 from PIL import Image
+
+from papertty.drivers.drivers_consts import EPD4in2const
+from papertty.drivers.drivers_partial import WavesharePartial
 
 try:
     import RPi.GPIO as GPIO
@@ -53,8 +54,7 @@ except RuntimeError as e:
 # image.load[width, height]
 
 
-class EPD4in2(drivers_partial.WavesharePartial,
-              drivers_consts.EPD4in2const):
+class EPD4in2(WavesharePartial, EPD4in2const):
     """WaveShare 4.2" """
 
     # code adapted from  epd_4in2.c

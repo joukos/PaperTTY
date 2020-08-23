@@ -12,13 +12,13 @@
 # Requires Python 3
 
 # display drivers - note: they are GPL licensed, unlike this file
-import drivers.drivers_base as drivers_base
-import drivers.drivers_partial as drivers_partial
-import drivers.drivers_full as drivers_full
-import drivers.drivers_color as drivers_color
-import drivers.drivers_colordraw as drivers_colordraw
-import drivers.driver_it8951 as driver_it8951
-import drivers.drivers_4in2 as driver_4in2
+import papertty.drivers.drivers_base as drivers_base
+import papertty.drivers.drivers_partial as drivers_partial
+import papertty.drivers.drivers_full as drivers_full
+import papertty.drivers.drivers_color as drivers_color
+import papertty.drivers.drivers_colordraw as drivers_colordraw
+import papertty.drivers.driver_it8951 as driver_it8951
+import papertty.drivers.drivers_4in2 as driver_4in2
 
 # for ioctl
 import fcntl
@@ -784,12 +784,14 @@ def terminal(settings, vcsa, font, fontsize, noclear, nocursor, cursor, sleep, t
                         time.sleep(float(sleep))
 
 
+# add all the CLI commands
+cli.add_command(scrub)
+cli.add_command(terminal)
+cli.add_command(stdin)
+cli.add_command(image)
+cli.add_command(vnc)
+cli.add_command(list_drivers)
+
+
 if __name__ == '__main__':
-    # add all the CLI commands
-    cli.add_command(scrub)
-    cli.add_command(terminal)
-    cli.add_command(stdin)
-    cli.add_command(image)
-    cli.add_command(vnc)
-    cli.add_command(list_drivers)
     cli()

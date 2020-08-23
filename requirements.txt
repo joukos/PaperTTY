@@ -1,5 +1,0 @@
-Pillow
-RPi.GPIO
-spidev
-click
-vncdotool==0.13.0

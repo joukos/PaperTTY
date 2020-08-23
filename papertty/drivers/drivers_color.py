@@ -14,8 +14,10 @@
 #     You should have received a copy of the GNU General Public License
 #     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from drivers.drivers_full import WaveshareFull
+from papertty.drivers.drivers_full import WaveshareFull
+
 from PIL import Image
+
 
 
 class WaveshareColor(WaveshareFull):

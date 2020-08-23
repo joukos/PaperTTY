@@ -9,4 +9,4 @@
 ##
 
 VENV="/home/pi/.virtualenvs/papertty/bin/python3"
-${VENV} papertty.py --driver epd2in13 terminal --autofit
+${VENV} papertty --driver epd2in13 terminal --autofit
