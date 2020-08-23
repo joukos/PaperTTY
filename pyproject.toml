@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "papertty"
-version = "0.1.4"
+version = "0.1.5"
 description = "Python module to render a TTY or VNC on e-ink"
 authors = ["Jouko Strömmer <jouko.strommer@iki.fi>"]
 readme = "README.md"
