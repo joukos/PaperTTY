@@ -46,10 +46,12 @@ from vncdotool import api
 # for reading stdin data for use with Pillow
 from io import BytesIO
 
+# resource path
+RESOURCE_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "resources")
 
 class PaperTTY:
     """The main class - handles various settings and showing text on the display"""
-    defaultfont = "tom-thumb.pil"
+    defaultfont = os.path.join(RESOURCE_PATH, "tom-thumb.pil")
     defaultsize = 8
     driver = None
     partial = None
