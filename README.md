@@ -1,5 +1,25 @@
 # PaperTTY
 
+
+## PyPi!
+
+**This is still WIP.**
+
+You can now install PaperTTY via PyPi. The updated (simplified) documentation is still a bit unfinished and things moved around somewhat, so the rest of this page is not quite up to date yet on all details.
+
+TL;DR:
+
+```sh
+sudo apt install python3-venv python3-pip libopenjp2-7 libtiff5
+# # optionally configure a virtualenv before running pip:
+# python3 -m venv papertty_venv
+# source papertty_venv/bin/activate
+pip3 install papertty
+```
+
+
+----
+
 ## Image display command
 
 @colin-nolan has contributed a subcommand to display image files on the screen, allowing to test the displays or easily make a photo slideshow or similar. Try `image --help` to check it out.
