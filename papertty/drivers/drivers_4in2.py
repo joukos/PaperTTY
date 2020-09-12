@@ -69,9 +69,9 @@ class EPD4in2(WavesharePartial, EPD4in2const):
     # override many methdos and therefore is way to long
 
     def __init__(self):
-        super(drivers_partial.WavesharePartial, self).__init__(name='4.2"',
-                                                               width=400,
-                                                               height=300)
+        super(WavesharePartial, self).__init__(name='4.2"',
+                                               width=400,
+                                               height=300)
         self.supports_partial = True
 
         # this is the memory buffer that will be updated!
