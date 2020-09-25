@@ -302,8 +302,80 @@ class EPD2in13v2(WavesharePartial):
     ]
 
     def __init__(self):
-        # the actual pixel width is 122, but 128 is the 'logical' width
-        super().__init__(name='2.13" BW V2 (full refresh only)', width=128, height=250)
+        super().__init__(name='2.13" BW V2 (full refresh only)', width=122, height=250)
+        
+
+    def display_frame(self):
+        self.send_command(self.DISPLAY_UPDATE_CONTROL_2)
+        self.send_data(0x0C)
+        self.send_command(self.MASTER_ACTIVATION)
+        self.wait_until_idle()
+
+    def init(self, partial=True):
+        self.partial_refresh = partial
+        if self.epd_init() != 0:
+            return -1
+        # EPD hardware init start
+        self.reset()
+        self.send_command(0x2C)     #VCOM Voltage
+        self.send_data(0x26)
+
+        self.wait_until_idle()
+
+        self.send_command(0x32)
+        for count in range(70):
+            self.send_data(self.lut_partial_update[count])
+
+        self.send_command(0x37)
+        self.send_data(0x00)
+        self.send_data(0x00)
+        self.send_data(0x00)
+        self.send_data(0x00)
+        self.send_data(0x40)
+        self.send_data(0x00)
+        self.send_data(0x00)
+
+        self.send_command(0x22)
+        self.send_data(0xC0)
+        self.send_command(0x20)
+        self.wait_until_idle()
+
+        self.send_command(0x3C) #BorderWavefrom
+        self.send_data(0x01)
+        # EPD hardware init end
+        return 0
+
+    def set_frame_memory(self, image, x, y):
+        if image is None or x < 0 or y < 0:
+            return
+        image_monocolor = image.convert('1')
+        image_width, image_height = image_monocolor.size
+        # x point must be the multiple of 8 or the last 3 bits will be ignored
+        x = x & 0xF8
+        image_width = image_width & 0xF8
+        if x + image_width >= self.width:
+            x_end = self.width - 1
+        else:
+            x_end = x + image_width - 1
+        if y + image_height >= self.height:
+            y_end = self.height - 1
+        else:
+            y_end = y + image_height - 1
+        self.set_memory_area(x, y, x_end, y_end)
+        # send the image data
+        pixels = image_monocolor.load()
+        byte_to_send = 0x00
+        for j in range(y, y_end + 1):
+            self.set_memory_pointer(x, j)
+            self.send_command(self.WRITE_RAM)
+            # 1 byte = 8 pixels, steps of i = 8
+            for i in range(x, x_end + 1):
+                # Set the bits for the column of pixels at the current position.
+                if pixels[i - x, j - y] != 0:
+                    byte_to_send |= 0x80 >> (i % 8)
+                if i % 8 == 7:
+                    self.send_data(byte_to_send)
+                    byte_to_send = 0x00
 
 
 class EPD2in9(WavesharePartial):
