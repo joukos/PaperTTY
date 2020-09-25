@@ -261,7 +261,6 @@ class EPD2in13(WavesharePartial):
                     self.send_data(byte_to_send)
                     byte_to_send = 0x00
 
-
 class EPD2in13v2(WavesharePartial):
     """Waveshare 2.13" V2 - monochrome"""
 
@@ -302,7 +301,8 @@ class EPD2in13v2(WavesharePartial):
     ]
 
     def __init__(self):
-        super().__init__(name='2.13" BW V2 (full refresh only)', width=122, height=250)
+        # the actual pixel width is 122, but 128 is the 'logical' width
+        super().__init__(name='2.13" BW V2 (full refresh only)', width=128, height=250)
         
 
     def display_frame(self):
@@ -312,37 +312,39 @@ class EPD2in13v2(WavesharePartial):
         self.wait_until_idle()
 
     def init(self, partial=True):
-        self.partial_refresh = partial
-        if self.epd_init() != 0:
-            return -1
-        # EPD hardware init start
-        self.reset()
-        self.send_command(0x2C)     #VCOM Voltage
-        self.send_data(0x26)
-
-        self.wait_until_idle()
-
-        self.send_command(0x32)
-        for count in range(70):
-            self.send_data(self.lut_partial_update[count])
-
-        self.send_command(0x37)
-        self.send_data(0x00)
-        self.send_data(0x00)
-        self.send_data(0x00)
-        self.send_data(0x00)
-        self.send_data(0x40)
-        self.send_data(0x00)
-        self.send_data(0x00)
-
-        self.send_command(0x22)
-        self.send_data(0xC0)
-        self.send_command(0x20)
-        self.wait_until_idle()
-
-        self.send_command(0x3C) #BorderWavefrom
-        self.send_data(0x01)
-        # EPD hardware init end
+        # Quick fix against distorted image on first initialization. Crisp image after second init.
+        for twice in range(2):
+            self.partial_refresh = partial
+            if self.epd_init() != 0:
+                return -1
+            # EPD hardware init start
+            self.reset()
+            self.send_command(0x2C)     #VCOM Voltage
+            self.send_data(0x26)
+            #
+            self.wait_until_idle()
+            #
+            self.send_command(0x32)
+            for count in range(70):
+                self.send_data(self.lut_partial_update[count])
+            #
+            self.send_command(0x37)
+            self.send_data(0x00)
+            self.send_data(0x00)
+            self.send_data(0x00)
+            self.send_data(0x00)
+            self.send_data(0x40)
+            self.send_data(0x00)
+            self.send_data(0x00)
+            #
+            self.send_command(0x22)
+            self.send_data(0xC0)
+            self.send_command(0x20)
+            self.wait_until_idle()
+            #
+            self.send_command(0x3C) #BorderWavefrom
+            self.send_data(0x01)
+            # EPD hardware init end
         return 0
 
     def set_frame_memory(self, image, x, y):
@@ -377,7 +379,7 @@ class EPD2in13v2(WavesharePartial):
                     self.send_data(byte_to_send)
                     byte_to_send = 0x00
 
-
+                    
 class EPD2in9(WavesharePartial):
     """Waveshare 2.9" - monochrome"""
 
