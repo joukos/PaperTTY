@@ -320,7 +320,7 @@ class EPD3in7(WaveshareFull):
         0x22,0x22,0x22,0x22,0x22
     ]
 
-    def ReadBusy(self):
+    def wait_until_idle(self):
         while self.digital_read(self.BUSY_PIN) == 1:      #  0: idle, 1: busy
             self.delay_ms(10)
 
