@@ -279,7 +279,9 @@ class EPD3in7(WaveshareFull):
     # The 3.7" display hardware supports B/W and 4-shade grayscale modes, but the
     # grayscale mode is not yet implemented here. Reference code in Waveshare's repo:
     # https://github.com/waveshare/e-Paper/blob/master/RaspberryPi_JetsonNano/python/lib/waveshare_epd/epd3in7.py
-    # Updating the screen in grayscale mode takes approximately 600-900 ms.
+    # Updating the screen with partial refresh takes approximately 600-900 ms. It is
+    # also not yet implemented here. Reference code in Waveshare's repo:
+    # https://github.com/waveshare/e-Paper/blob/master/RaspberryPi_JetsonNano/c/lib/e-Paper/EPD_3in7.c#L549
 
     lut_1Gray_GC  = [
         0x2A,0x05,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
