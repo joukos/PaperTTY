@@ -341,10 +341,10 @@ class EPD3in7(WaveshareFull):
         
         self.send_command(0x46)
         self.send_data(0xF7)
-        self.ReadBusy()
+        self.wait_until_idle()
         self.send_command(0x47)
         self.send_data(0xF7)
-        self.ReadBusy()
+        self.wait_until_idle()
         
         self.send_command(0x01) # setting gaet number
         self.send_data(0xDF)
@@ -427,7 +427,7 @@ class EPD3in7(WaveshareFull):
                     self.send_data(frame_buffer[i + j * int(self.width / 8)])   
 
             self.send_command(0x20)
-            self.ReadBusy()   
+            self.wait_until_idle()   
 
     def sleep(self):
         self.send_command(0X50) # DEEP_SLEEP_MODE
