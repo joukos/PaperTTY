@@ -288,7 +288,70 @@ class PaperTTY:
         draw = ImageDraw.Draw(mask)
         draw.rectangle([upper_left, lower_right], fill=self.white)
         return ImageChops.logical_xor(image, mask)
-    
+
+    def showfb(self, fb_num, rotate=None, invert=False, sleep=1, full_interval=100):
+        """Render the framebuffer - basically a copy-paste of showvnc at this point"""
+        def _get_fb_info(fb_num):
+            config_dir = "/sys/class/graphics/fb%d/" % fb_num
+            size = None
+            bpp = None
+            with open(config_dir + "/virtual_size", "r") as f:
+                size = tuple([int(t) for t in f.read().strip().split(",")])
+            with open(config_dir + "/bits_per_pixel", "r") as f:
+                bpp = int(f.read().strip())
+            return (size,bpp)
+
+        def _get_fb_img(fb_num):
+            size, bpp = _get_fb_info(fb_num)
+            with open("/dev/fb%d" % fb_num, "rb") as f:
+                mode = "BGRX" if bpp == 32 else "BGR;16"
+                return Image.frombytes("RGB", size, f.read(), "raw", mode).convert("L")
+
+        previous_fb_img = None
+        diff_bbox = None
+        # number of updates; when it's 0, do a full refresh
+        updates = 0
+        while True:
+            new_fb_img = _get_fb_img(fb_num)
+            # apply rotation if any
+            if rotate:
+                new_fb_img = new_fb_img.rotate(rotate, expand=True)
+            # apply invert
+            if invert:
+                new_fb_img = ImageOps.invert(new_fb_img)
+            # rescale image if needed
+            if new_fb_img.size != (self.driver.width, self.driver.height):
+                new_fb_img = new_fb_img.resize((self.driver.width, self.driver.height))
+            # if at least two frames have been processed, get a bounding box of their difference region
+            if new_fb_img and previous_fb_img:
+                diff_bbox = self.band(self.img_diff(new_fb_img, previous_fb_img))
+            # frames differ, so we should update the display
+            if diff_bbox:
+                # increment update counter
+                updates = (updates + 1) % full_interval
+                # if partial update is supported and it's not time for a full refresh,
+                # draw just the different region
+                if updates > 0 and (self.driver.supports_partial and self.partial):
+                    print("partial ({}): {}".format(updates, diff_bbox))
+                    self.driver.draw(diff_bbox[0], diff_bbox[1], new_fb_img.crop(diff_bbox))
+                # if partial update is not possible or desired, do a full refresh
+                else:
+                    print("full ({}): {}".format(updates, new_fb_img.size))
+                    old_partial = self.partial
+                    self.partial = False
+                    self.driver.draw(0, 0, new_fb_img)
+                    self.partial = old_partial
+            # otherwise this is the first frame, so run a full refresh to get things going
+            else:
+                if updates == 0:
+                    updates = (updates + 1) % full_interval
+                    print("initial ({}): {}".format(updates, new_fb_img.size))
+                    self.driver.draw(0, 0, new_fb_img)
+            previous_fb_img = new_fb_img.copy()
+            time.sleep(float(sleep))
+
+
+
     def showvnc(self, host, display, password=None, rotate=None, invert=False, sleep=1, full_interval=100):
         with api.connect(':'.join([host, display]), password=password) as client:
             previous_vnc_image = None
@@ -584,6 +647,19 @@ def vnc(settings, host, display, password, rotate, invert, sleep, fullevery):
 
 
 @click.command()
+@click.option('--fb-num', default="0", help="Framebuffer to display (/dev/fbX)", show_default=True)
+@click.option('--rotate', default=None, help="Rotate screen (90 / 180 / 270)")
+@click.option('--invert', default=False, is_flag=True, help="Invert colors")
+@click.option('--sleep', default=1, show_default=True, help="Refresh interval (s)", type=float)
+@click.option('--fullevery', default=50, show_default=True, help="# of partial updates between full updates")
+@click.pass_obj
+def fb(settings, fb_num, rotate, invert, sleep, fullevery):
+    """Display the framebuffer"""
+    ptty = settings.get_init_tty()
+    ptty.showfb(int(fb_num), int(rotate) if rotate else None, invert, sleep, fullevery)
+
+
+@click.command()
 @click.option('--vcsa', default='/dev/vcsa1', help='Virtual console device (/dev/vcsa[1-63])', show_default=True)
 @click.option('--font', default=PaperTTY.defaultfont, help='Path to a TrueType or PIL font', show_default=True)
 @click.option('--size', 'fontsize', default=8, help='Font size', show_default=True)
@@ -792,6 +868,7 @@ cli.add_command(terminal)
 cli.add_command(stdin)
 cli.add_command(image)
 cli.add_command(vnc)
+cli.add_command(fb)
 cli.add_command(list_drivers)
 
 

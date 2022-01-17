@@ -1,5 +1,67 @@
 # PaperTTY
 
+## Overview
+
+PaperTTY is a simple Python module for using affordable SPI e-ink displays as a computer monitor, with a Raspberry Pi being the typical computer interfacing with the display. Most of the tested displays are Waveshare branded, but also others - particularly ones using the IT8951 controller - might work.
+
+Things it can display on the e-ink:
+| Subcommand | Description                             |
+| ---------- | --------------------------------------- |
+| `fb`       | Framebuffer (`/dev/fbX`)                |
+| `terminal` | Linux virtual console (`/dev/vcs[au]X`) |
+| `vnc`      | VNC desktop                             |
+| `image`    | Image files                             |
+| `stdin`    | Standard input                          |
+
+To use any feature, you need to select an appropriate driver for your e-ink display as a top-level option (`papertty --driver X ...`). To see the list of drivers, use `papertty list`.
+
+To see help for individual subcommands, use `--help` with them, ie. `papertty --driver X --terminal --help`.
+
+## Usage
+
+PaperTTY is currently packaged using Poetry, however it can be installed via pip too. The instructions here are for Raspberry Pi (please open an issue if you need support for another platform).
+
+**You need to enable SPI first:**
+- `sudo raspi-config`
+  - `Interfacing Options -> SPI -> Yes`
+- May want to reboot just in case
+
+### Install with pip to virtualenv
+
+If you just want it installed as packaged in PyPi (if you need to modify something use the Poetry way instead - also note that it is possible for the package in PyPi to not match the latest source):
+
+```bash
+sudo apt install python3-venv python3-pip libopenjp2-7 libtiff5 libjpeg-dev
+python3 -m venv papertty_venv
+source papertty_venv/bin/activate
+pip install papertty
+papertty_venv/bin/papertty --help
+```
+
+### Install with Poetry
+
+The "correct" way to set up PaperTTY is using Poetry. This gives you the most flexibility and handles the virtualenv creation automatically. Sometimes with VNC issues one may need to downgrade `vncdotool` to `0.13.0`, too, which is not as easy with the pip method.
+
+**First you need to install Poetry, refer to their [instructions](https://python-poetry.org/docs/#installation).**
+
+Then:
+
+```bash
+git clone https://github.com/joukos/PaperTTY.git
+cd PaperTTY
+poetry install  # if you change something with the deps, do a `poetry update`
+poetry run papertty --help
+```
+
+To get a direct path for the script (which will be run in the virtual environment with all the dependencies), run in the directory: `echo $(poetry env info -p)/bin/papertty`. Append any options you need and this is what you want to start in a SystemD unit or so, possibly with `sudo` depending on the OS configuration and the feature you wish to use.
+
+
+**The rest of this page has not been updated but is left as reference until a more holistic documentation update is actually done. If you have any issues, please search the existing issues and create a new one if necessary. joukos/2022-01-17**
+
+# Warning - old stuff ahead!
+
+---
+
 
 ## PyPi!
 
@@ -10,7 +72,7 @@ You can now install PaperTTY via PyPi. The updated (simplified) documentation is
 TL;DR:
 
 ```sh
-sudo apt install python3-venv python3-pip libopenjp2-7 libtiff5
+sudo apt install python3-venv python3-pip libopenjp2-7 libtiff5 libjpeg-dev
 # # optionally configure a virtualenv before running pip:
 # python3 -m venv papertty_venv
 # source papertty_venv/bin/activate
