@@ -26,12 +26,15 @@ PaperTTY is currently packaged using Poetry, however it can be installed via pip
   - `Interfacing Options -> SPI -> Yes`
 - May want to reboot just in case
 
+**Then, you also need some system dependencies:**
+
+- `sudo apt install python3-venv python3-pip libopenjp2-7 libtiff5 libjpeg-dev`
+
 ### Install with pip to virtualenv
 
 If you just want it installed as packaged in PyPi (if you need to modify something use the Poetry way instead - also note that it is possible for the package in PyPi to not match the latest source):
 
 ```bash
-sudo apt install python3-venv python3-pip libopenjp2-7 libtiff5 libjpeg-dev
 python3 -m venv papertty_venv
 source papertty_venv/bin/activate
 pip install papertty
