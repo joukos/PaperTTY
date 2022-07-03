@@ -227,6 +227,128 @@ class EPD7in5b(WaveshareColor):
         self.send_data(0xa5)
 
 
+class EPD7in5b_V2(WaveshareColor):
+    """Waveshare 7.5" B V2 - black / white / red"""
+
+    IMAGE_PROCESS = 0x13
+    LUT_BLUE = 0x21
+    LUT_GRAY_1 = 0x23
+    LUT_GRAY_2 = 0x24
+    LUT_RED_0 = 0x25
+    LUT_RED_1 = 0x26
+    LUT_RED_2 = 0x27
+    LUT_RED_3 = 0x28
+    LUT_WHITE = 0x22
+    LUT_XON = 0x29
+    READ_VCOM_VALUE = 0x81
+    REVISION = 0x70
+    SPI_FLASH_CONTROL = 0x65
+    TCON_RESOLUTION = 0x61
+    TEMPERATURE_CALIBRATION = 0x41
+
+    def __init__(self):
+        super().__init__(name='7.5" B V2', width=800, height=480)
+        print("!! You are using an EXPERIMENTAL DRIVER, USE AT OWN RISK !!")
+
+    def init(self, **kwargs):
+        if self.epd_init() != 0:
+            return -1
+        self.reset()
+
+        self.send_command(self.POWER_SETTING)
+        self.send_data(0x07)
+        self.send_data(0x07)#VGH=20V,VGL=-20V
+        self.send_data(0x3f)#VDH=15V
+        self.send_data(0x3f)#VDL=-15V
+        self.send_command(self.POWER_ON)
+        self.wait_until_idle()
+
+        self.send_command(self.PANEL_SETTING)
+        self.send_data(0x0F) #KW-3f   KWR-2F	BWROTP 0f	BWOTP 1f
+        self.send_command(0x61)
+
+        self.send_data(0x03)		#source 800
+        self.send_data(0x20)
+        self.send_data(0x01)		#gate 480
+        self.send_data(0xE0)
+
+
+        self.send_command(0X15)
+        self.send_data(0x00)
+
+        self.send_command(self.VCOM_AND_DATA_INTERVAL_SETTING);		#VCOM AND DATA INTERVAL SETTING
+        self.send_data(0x11)
+        self.send_data(0x07)
+
+        self.send_command(self.TCON_SETTING)			#TCON SETTING
+        self.send_data(0x22)
+
+        self.send_command(0x65)
+        self.send_data(0x00)
+        self.send_data(0x00)
+        self.send_data(0x00)
+        self.send_data(0x00)
+
+
+    def get_frame_buffer(self, image, reverse=False):
+        buf = [0x00] * int(self.width * self.height / 4)
+        # Set buffer to value of Python Imaging Library image.
+        # Image must be in mode L.
+        image_grayscale = image.convert('L')
+        imwidth, imheight = image_grayscale.size
+        if imwidth != self.width or imheight != self.height:
+            raise ValueError('Image must be same dimensions as display \
+                ({0}x{1}).'.format(self.width, self.height))
+
+        pixels = image_grayscale.load()
+        for y in range(self.height):
+            for x in range(self.width):
+                # Set the bits for the column of pixels at the current position.
+                if pixels[x, y] < 64:  # black
+                    buf[int((x + y * self.width) / 4)] &= ~(0xC0 >> (x % 4 * 2))
+                elif pixels[x, y] < 192:  # convert gray to red
+                    buf[int((x + y * self.width) / 4)] &= ~(0xC0 >> (x % 4 * 2))
+                    buf[int((x + y * self.width) / 4)] |= 0x40 >> (x % 4 * 2)
+                else:  # white
+                    buf[int((x + y * self.width) / 4)] |= 0xC0 >> (x % 4 * 2)
+        return buf
+
+    def display_frame(self, frame_buffer, *args):
+        self.send_command(self.DATA_START_TRANSMISSION_1)
+        for i in range(0, int(self.width / 4 * self.height)):
+            temp1 = frame_buffer[i]
+            j = 0
+            while j < 4:
+                if (temp1 & 0xC0) == 0xC0:
+                    temp2 = 0x03
+                elif (temp1 & 0xC0) == 0x00:
+                    temp2 = 0x00
+                else:
+                    temp2 = 0x04
+                temp2 = (temp2 << 4) & 0xFF
+                temp1 = (temp1 << 2) & 0xFF
+                j += 1
+                if (temp1 & 0xC0) == 0xC0:
+                    temp2 |= 0x03
+                elif (temp1 & 0xC0) == 0x00:
+                    temp2 |= 0x00
+                else:
+                    temp2 |= 0x04
+                temp1 = (temp1 << 2) & 0xFF
+                self.send_data(temp2)
+                j += 1
+        self.send_command(self.DISPLAY_REFRESH)
+        self.delay_ms(100)
+        self.wait_until_idle()
+
+    def sleep(self):
+        self.send_command(self.POWER_OFF)
+        self.wait_until_idle()
+        self.send_command(self.DEEP_SLEEP)
+        self.send_data(0xa5)
+
+
+
 class EPD5in65f(WaveshareColor):
     """Waveshare 5.65" - 7 colors"""
 
