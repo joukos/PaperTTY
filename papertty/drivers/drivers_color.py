@@ -313,7 +313,22 @@ class EPD7in5b_V2(WaveshareColor):
                     buf[int((x + y * self.width) / 4)] |= 0xC0 >> (x % 4 * 2)
         return buf
 
-    def display_frame(self, frame_buffer, *args):
+    def display_frame(self, frame_buffer_black, *args):
+        frame_buffer_red = args[0]
+        self.send_command(self.DATA_START_TRANSMISSION_1)
+
+        for i in range(len(frame_buffer_black)):
+            frame_buffer_black[i] ^= 0xFF
+        self.send_data2(frame_buffer_black)
+
+        self.send_command(0x13)
+        self.send_data2(frame_buffer_red)
+        
+        self.send_command(0x12)
+        self.send_command(self.DISPLAY_REFRESH)
+        self.delay_ms(100)
+        self.wait_until_idle()
+        return #Just to temp. get rid of the code
         self.send_command(self.DATA_START_TRANSMISSION_1)
         for i in range(0, int(self.width / 4 * self.height)):
             temp1 = frame_buffer[i]
