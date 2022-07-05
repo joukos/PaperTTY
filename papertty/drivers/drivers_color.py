@@ -290,68 +290,50 @@ class EPD7in5b_V2(WaveshareColor):
         self.send_data(0x00)
 
 
-    def get_frame_buffer(self, image, reverse=False):
-        buf = [0x00] * int(self.width * self.height / 4)
-        # Set buffer to value of Python Imaging Library image.
-        # Image must be in mode L.
-        image_grayscale = image.convert('L')
-        imwidth, imheight = image_grayscale.size
-        if imwidth != self.width or imheight != self.height:
-            raise ValueError('Image must be same dimensions as display \
-                ({0}x{1}).'.format(self.width, self.height))
+    def getbuffer(self, image):
+        img = image
+        imwidth, imheight = img.size
+        if(imwidth == self.width and imheight == self.height):
+            img = img.convert('1')
+        elif(imwidth == self.height and imheight == self.width):
+            # image has correct dimensions, but needs to be rotated
+            img = img.rotate(90, expand=True).convert('1')
+        else:
+            print("Wrong image dimensions: must be " + str(self.width) + "x" + str(self.height))
+                # return a blank buffer
+            return [0x00] * (int(self.width/8) * self.height)
 
-        pixels = image_grayscale.load()
-        for y in range(self.height):
-            for x in range(self.width):
-                # Set the bits for the column of pixels at the current position.
-                if pixels[x, y] < 64:  # black
-                    buf[int((x + y * self.width) / 4)] &= ~(0xC0 >> (x % 4 * 2))
-                elif pixels[x, y] < 192:  # convert gray to red
-                    buf[int((x + y * self.width) / 4)] &= ~(0xC0 >> (x % 4 * 2))
-                    buf[int((x + y * self.width) / 4)] |= 0x40 >> (x % 4 * 2)
-                else:  # white
-                    buf[int((x + y * self.width) / 4)] |= 0xC0 >> (x % 4 * 2)
+        buf = bytearray(img.tobytes('raw'))
+            # The bytes need to be inverted, because in the PIL world 0=black and 1=white, but
+            # in the e-paper world 0=white and 1=black.
+        for i in range(len(buf)):
+            buf[i] ^= 0xFF
         return buf
 
-    def display_frame(self, frame_buffer_black, *args):
-        frame_buffer_red = args[0]
-        self.send_command(self.DATA_START_TRANSMISSION_1)
+    def display_frame(self, frame_buffer, *args):
+        frame_buffer_red = args[0] if args else None
 
-        for i in range(len(frame_buffer_black)):
-            frame_buffer_black[i] ^= 0xFF
-        self.send_data2(frame_buffer_black)
+        if frame_buffer:
+            self.send_command(self.DATA_START_TRANSMISSION_1)
+            self.delay_ms(2)
+            for i in range(0, int(self.width * self.height / 8)):
+                self.send_data(frame_buffer[i])
+                ## self.send_data(0)
+            self.delay_ms(2)
 
         self.send_command(0x13)
-        self.send_data2(frame_buffer_red)
         
+        if frame_buffer_red:
+            #self.send_command(self.DATA_START_TRANSMISSION_2)
+            self.delay_ms(2)
+            for i in range(0, int(self.width * self.height / 8)):
+                self.send_data(frame_buffer_red[i])
+            self.delay_ms(2)
+        else:
+            for i in range(0, int(self.width * self.height / 8)):
+                self.send_data(0x00)
+                
         self.send_command(0x12)
-        self.send_command(self.DISPLAY_REFRESH)
-        self.delay_ms(100)
-        self.wait_until_idle()
-        return #Just to temp. get rid of the code
-        self.send_command(self.DATA_START_TRANSMISSION_1)
-        for i in range(0, int(self.width / 4 * self.height)):
-            temp1 = frame_buffer[i]
-            j = 0
-            while j < 4:
-                if (temp1 & 0xC0) == 0xC0:
-                    temp2 = 0x03
-                elif (temp1 & 0xC0) == 0x00:
-                    temp2 = 0x00
-                else:
-                    temp2 = 0x04
-                temp2 = (temp2 << 4) & 0xFF
-                temp1 = (temp1 << 2) & 0xFF
-                j += 1
-                if (temp1 & 0xC0) == 0xC0:
-                    temp2 |= 0x03
-                elif (temp1 & 0xC0) == 0x00:
-                    temp2 |= 0x00
-                else:
-                    temp2 |= 0x04
-                temp1 = (temp1 << 2) & 0xFF
-                self.send_data(temp2)
-                j += 1
         self.send_command(self.DISPLAY_REFRESH)
         self.delay_ms(100)
         self.wait_until_idle()
@@ -361,8 +343,6 @@ class EPD7in5b_V2(WaveshareColor):
         self.wait_until_idle()
         self.send_command(self.DEEP_SLEEP)
         self.send_data(0xa5)
-
-
 
 class EPD5in65f(WaveshareColor):
     """Waveshare 5.65" - 7 colors"""
