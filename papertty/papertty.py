@@ -472,7 +472,7 @@ def get_drivers():
                   drivers_partial.EPD2in13d, driver_4in2.EPD4in2,
 
                   drivers_full.EPD2in7, drivers_full.EPD3in7, drivers_full.EPD7in5,
-                  drivers_full.EPD7in5v2,
+                  drivers_color.EPD7in5b_V2, drivers_full.EPD7in5v2,
 
                   drivers_color.EPD4in2b, drivers_color.EPD7in5b,
                   drivers_color.EPD5in83, drivers_color.EPD5in83b,

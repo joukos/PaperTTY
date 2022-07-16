@@ -227,6 +227,123 @@ class EPD7in5b(WaveshareColor):
         self.send_data(0xa5)
 
 
+class EPD7in5b_V2(WaveshareColor):
+    """Waveshare 7.5" B V2 - black / white / red"""
+
+    IMAGE_PROCESS = 0x13
+    LUT_BLUE = 0x21
+    LUT_GRAY_1 = 0x23
+    LUT_GRAY_2 = 0x24
+    LUT_RED_0 = 0x25
+    LUT_RED_1 = 0x26
+    LUT_RED_2 = 0x27
+    LUT_RED_3 = 0x28
+    LUT_WHITE = 0x22
+    LUT_XON = 0x29
+    READ_VCOM_VALUE = 0x81
+    REVISION = 0x70
+    SPI_FLASH_CONTROL = 0x65
+    TCON_RESOLUTION = 0x61
+    TEMPERATURE_CALIBRATION = 0x41
+
+    def __init__(self):
+        super().__init__(name='7.5" B V2', width=800, height=480)
+        print("!! You are using an EXPERIMENTAL DRIVER, USE AT OWN RISK !!")
+
+    def init(self, **kwargs):
+        if self.epd_init() != 0:
+            return -1
+        self.reset()
+
+        self.send_command(self.POWER_SETTING)
+        self.send_data(0x07)
+        self.send_data(0x07)#VGH=20V,VGL=-20V
+        self.send_data(0x3f)#VDH=15V
+        self.send_data(0x3f)#VDL=-15V
+        self.send_command(self.POWER_ON)
+        self.wait_until_idle()
+
+        self.send_command(self.PANEL_SETTING)
+        self.send_data(0x0F) #KW-3f   KWR-2F	BWROTP 0f	BWOTP 1f
+        self.send_command(0x61)
+
+        self.send_data(0x03)		#source 800
+        self.send_data(0x20)
+        self.send_data(0x01)		#gate 480
+        self.send_data(0xE0)
+
+
+        self.send_command(0X15)
+        self.send_data(0x00)
+
+        self.send_command(self.VCOM_AND_DATA_INTERVAL_SETTING);		#VCOM AND DATA INTERVAL SETTING
+        self.send_data(0x11)
+        self.send_data(0x07)
+
+        self.send_command(self.TCON_SETTING)			#TCON SETTING
+        self.send_data(0x22)
+
+        self.send_command(0x65)
+        self.send_data(0x00)
+        self.send_data(0x00)
+        self.send_data(0x00)
+        self.send_data(0x00)
+
+
+    def getbuffer(self, image):
+        img = image
+        imwidth, imheight = img.size
+        if(imwidth == self.width and imheight == self.height):
+            img = img.convert('1')
+        elif(imwidth == self.height and imheight == self.width):
+            # image has correct dimensions, but needs to be rotated
+            img = img.rotate(90, expand=True).convert('1')
+        else:
+            print("Wrong image dimensions: must be " + str(self.width) + "x" + str(self.height))
+                # return a blank buffer
+            return [0x00] * (int(self.width/8) * self.height)
+
+        buf = bytearray(img.tobytes('raw'))
+            # The bytes need to be inverted, because in the PIL world 0=black and 1=white, but
+            # in the e-paper world 0=white and 1=black.
+        for i in range(len(buf)):
+            buf[i] ^= 0xFF
+        return buf
+
+    def display_frame(self, frame_buffer, *args):
+        frame_buffer_red = args[0] if args else None
+
+        if frame_buffer:
+            self.send_command(self.DATA_START_TRANSMISSION_1)
+            self.delay_ms(2)
+            for i in range(0, int(self.width * self.height / 8)):
+                self.send_data(frame_buffer[i])
+                ## self.send_data(0)
+            self.delay_ms(2)
+
+        self.send_command(0x13)
+        
+        if frame_buffer_red:
+            #self.send_command(self.DATA_START_TRANSMISSION_2)
+            self.delay_ms(2)
+            for i in range(0, int(self.width * self.height / 8)):
+                self.send_data(frame_buffer_red[i])
+            self.delay_ms(2)
+        else:
+            for i in range(0, int(self.width * self.height / 8)):
+                self.send_data(0x00)
+                
+        self.send_command(0x12)
+        self.send_command(self.DISPLAY_REFRESH)
+        self.delay_ms(100)
+        self.wait_until_idle()
+
+    def sleep(self):
+        self.send_command(self.POWER_OFF)
+        self.wait_until_idle()
+        self.send_command(self.DEEP_SLEEP)
+        self.send_data(0xa5)
+
 class EPD5in65f(WaveshareColor):
     """Waveshare 5.65" - 7 colors"""
 
