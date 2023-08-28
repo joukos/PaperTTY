@@ -222,7 +222,7 @@ class PaperTTY:
             # despite what the PIL docs say, ascent appears to be the
             # height of the font, while descent is not, in fact, negative.
             # Couuld use testing with more fonts.
-            self.font_height = metrics_ascent + self.spacing
+            self.font_height = metrics_ascent + metrics_descent + self.spacing
         else:
             # No autospacing for pil fonts, but they usually don't need it.
             self.spacing = int(self.spacing) if self.spacing != 'auto' else 0
@@ -394,7 +394,14 @@ class PaperTTY:
                               self.white)
             # create the Draw object and draw the text
             draw = ImageDraw.Draw(image)
-            draw.text((0, 0), text, font=self.font, fill=fill, spacing=self.spacing)
+
+            # Split the text up by line and display each line individually.
+            # This is a workaround for a font height bug in PIL
+            lines = text.split('\n')
+            for i in range(self.rows):
+                line = lines[i] if i < len(lines) else ''
+                y = i * self.font_height
+                draw.text((0, y), line, font=self.font, fill=fill, spacing=self.spacing)
 
             # if we want a cursor, draw it - the most convoluted part
             if cursor and self.cursor:
