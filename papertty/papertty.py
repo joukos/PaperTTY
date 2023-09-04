@@ -401,7 +401,8 @@ class PaperTTY:
             for i in range(self.rows):
                 line = lines[i] if i < len(lines) else ''
                 y = i * self.font_height
-                draw.text((0, y), line, font=self.font, fill=fill, spacing=self.spacing)
+                if line:
+                     draw.text((0, y), line, font=self.font, fill=fill, spacing=self.spacing)
 
             # if we want a cursor, draw it - the most convoluted part
             if cursor and self.cursor:
