@@ -398,11 +398,10 @@ class PaperTTY:
             # Split the text up by line and display each line individually.
             # This is a workaround for a font height bug in PIL
             lines = text.split('\n')
-            for i in range(self.rows):
-                line = lines[i] if i < len(lines) else ''
-                y = i * self.font_height
+            for i, line in enumerate(lines):
                 if line:
-                     draw.text((0, y), line, font=self.font, fill=fill, spacing=self.spacing)
+                    y = i * self.font_height
+                    draw.text((0, y), line, font=self.font, fill=fill, spacing=self.spacing)
 
             # if we want a cursor, draw it - the most convoluted part
             if cursor and self.cursor:
