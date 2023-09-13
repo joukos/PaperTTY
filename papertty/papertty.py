@@ -206,45 +206,29 @@ class PaperTTY:
             font = ImageFont.load_default()
 
         if font:
-            # get physical dimensions of font. Take the average width of
-            # 1000 M's because oblique fonts are complicated.
-            self.font_width = font.getsize('M' * 1000)[0] // 1000
-            if 'getmetrics' in dir(font):
-                metrics_ascent, metrics_descent = font.getmetrics()
-                self.spacing = int(self.spacing) if self.spacing != 'auto' else (metrics_descent - 2)
-                print('Setting spacing to {}.'.format(self.spacing))
-                # despite what the PIL docs say, ascent appears to be the
-                # height of the font, while descent is not, in fact, negative.
-                # Couuld use testing with more fonts.
-                self.font_height = metrics_ascent + self.spacing
-            else:
-                # No autospacing for pil fonts, but they usually don't need it.
-                self.spacing = int(self.spacing) if self.spacing != 'auto' else 0
-                # pil fonts don't seem to have metrics, but all
-                # characters seem to have the same height
-                self.font_height = font.getsize('a')[1] + self.spacing
+            self.recalculate_font(font)
 
         return font
 
-    def recalculate_font(self):
+    def recalculate_font(self, font):
         """Load the PIL or TrueType font"""
         # get physical dimensions of font. Take the average width of
         # 1000 M's because oblique fonts a complicated.
-        self.font_width = self.font.getsize('M' * 1000)[0] // 1000
-        if 'getmetrics' in dir(self.font):
-            metrics_ascent, metrics_descent = self.font.getmetrics()
+        self.font_width = font.getsize('M' * 1000)[0] // 1000
+        if 'getmetrics' in dir(font):
+            metrics_ascent, metrics_descent = font.getmetrics()
             self.spacing = int(self.spacing) if self.spacing != 'auto' else (metrics_descent - 2)
             print('Setting spacing to {}.'.format(self.spacing))
             # despite what the PIL docs say, ascent appears to be the
             # height of the font, while descent is not, in fact, negative.
             # Couuld use testing with more fonts.
-            self.font_height = metrics_ascent + self.spacing
+            self.font_height = metrics_ascent + metrics_descent + self.spacing
         else:
             # No autospacing for pil fonts, but they usually don't need it.
             self.spacing = int(self.spacing) if self.spacing != 'auto' else 0
             # pil fonts don't seem to have metrics, but all
             # characters seem to have the same height
-            self.font_height = self.font.getsize('a')[1] + self.spacing
+            self.font_height = font.getsize('a')[1] + self.spacing
 
     def init_display(self):
         """Initialize the display - call the driver's init method"""
@@ -410,7 +394,14 @@ class PaperTTY:
                               self.white)
             # create the Draw object and draw the text
             draw = ImageDraw.Draw(image)
-            draw.text((0, 0), text, font=self.font, fill=fill, spacing=self.spacing)
+
+            # Split the text up by line and display each line individually.
+            # This is a workaround for a font height bug in PIL
+            lines = text.split('\n')
+            for i, line in enumerate(lines):
+                if line:
+                    y = i * self.font_height
+                    draw.text((0, y), line, font=self.font, fill=fill, spacing=self.spacing)
 
             # if we want a cursor, draw it - the most convoluted part
             if cursor and self.cursor:
@@ -788,7 +779,7 @@ def terminal(settings, vcsa, font, fontsize, noclear, nocursor, cursor, sleep, t
                     new_spacing = click.prompt('Enter new spacing (leave empty to abort)', default='empty', type=int, show_default=False)
                     if new_spacing != 'empty':
                         ptty.spacing = new_spacing
-                        ptty.recalculate_font()
+                        ptty.recalculate_font(ptty.font)
                         if autofit:
                             max_dim = ptty.fit(portrait)
                             print("Automatic resize of TTY to {} rows, {} columns".format(max_dim[1], max_dim[0]))
