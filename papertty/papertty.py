@@ -574,13 +574,9 @@ def list_drivers():
 @click.pass_obj
 def scrub(settings, size):
     """Slowly fill with black, then white"""
-    ptty = settings.get_init_tty()
-    # If partial refresh isn't supported, don't try to stripe the scrub.
-    # Set the size to be the full width instead
-    if not ptty.driver.supports_partial:
-        size = ptty.driver.width
-    elif size not in range(8, 32 + 1):
+    if size not in range(8, 32 + 1):
         PaperTTY.error("Invalid stripe size, must be 8-32")
+    ptty = settings.get_init_tty()
     ptty.driver.scrub(fillsize=size)
 
 
@@ -708,10 +704,7 @@ def terminal(settings, vcsa, font, fontsize, noclear, nocursor, cursor, sleep, t
     ptty = settings.get_init_tty()
 
     if apply_scrub:
-        if ptty.driver.supports_partial:
-            ptty.driver.scrub()
-        else:
-            ptty.driver.scrub(ptty.driver.width)
+        ptty.driver.scrub()
     oldbuff = ''
     oldimage = None
     oldcursor = None
@@ -833,10 +826,7 @@ def terminal(settings, vcsa, font, fontsize, noclear, nocursor, cursor, sleep, t
 
             # if user or SIGUSR1 toggled the scrub flag, scrub display and start with a fresh image
             if flags['scrub_requested']:
-                if ptty.driver.supports_partial:
-                    ptty.driver.scrub()
-                else:
-                    ptty.driver.scrub(ptty.driver.width)
+                ptty.driver.scrub()
                 # clear old image and buffer and restore flag
                 oldimage = None
                 oldbuff = ''
