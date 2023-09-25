@@ -427,6 +427,7 @@ Option | Description | Default
 `--spacing` | Set line spacing | `0` 
 `--scrub` | Apply scrub when starting | disabled
 `--autofit` | Try to automatically set terminal rows/cols for the font | disabled
+`--vcom` | Set the VCOM value of the panel. Entered as positive value x 1000. eg. 1460 = -1.46V | *no default*
 
 
 ```sh
