@@ -173,7 +173,7 @@ class IT8951(DisplayDriver):
             result = result[0:null_index]
         return result
 
-    def init(self, vcom=None, **kwargs):
+    def init(self, **kwargs):
         GPIO.setmode(GPIO.BCM)
         GPIO.setwarnings(False)
         GPIO.setup(self.RST_PIN, GPIO.OUT)
@@ -228,8 +228,9 @@ class IT8951(DisplayDriver):
         # Set to Enable I80 Packed mode.
         self.write_register(self.REG_I80CPCR, 0x0001)
 
-        if vcom:
-            self.VCOM = vcom
+        for key, value in kwargs.items():
+            if key == 'vcom':
+                self.VCOM = value
             
         if self.VCOM != self.get_vcom():
             self.set_vcom(self.VCOM)

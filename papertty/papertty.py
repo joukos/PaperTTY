@@ -71,7 +71,7 @@ class PaperTTY:
     is_truetype = None
     fontfile = None
 
-    def __init__(self, driver, font=defaultfont, fontsize=defaultsize, partial=None, encoding='utf-8', spacing=0, cursor=None):
+    def __init__(self, driver, font=defaultfont, fontsize=defaultsize, partial=None, encoding='utf-8', spacing=0, cursor=None, vcom=None):
         """Create a PaperTTY with the chosen driver and settings"""
         self.driver = get_drivers()[driver]['class']()
         self.spacing = spacing
@@ -82,6 +82,7 @@ class PaperTTY:
         self.black = self.driver.black
         self.encoding = encoding
         self.cursor = cursor
+        self.vcom = vcom
 
     def ready(self):
         """Check that the driver is loaded and initialized"""
@@ -693,7 +694,7 @@ def terminal(settings, vcsa, font, fontsize, noclear, nocursor, cursor, sleep, t
             print("VCOM should be a positive number. It will be converted automatically. eg. For a value of -1.46V, set VCOM to 1460")
             sys.exit(1)
         else:
-            self.vcom = vcom
+            settings.args['vcom'] = vcom
 
     if cursor == 'default' or cursor == 'legacy':
         settings.args['cursor'] = 'default'
