@@ -234,8 +234,7 @@ class IT8951(DisplayDriver):
 
         # Initialize the display with a blank image.
         self.wait_for_ready()
-        image = Image.new("L", (self.width, self.height), 0x255)
-        self.draw(0, 0, image, self.DISPLAY_UPDATE_MODE_INIT)
+        self.clear()
 
     def display_area(self, x, y, w, h, display_mode):
         self.write_command(self.CMD_DISPLAY_AREA)
