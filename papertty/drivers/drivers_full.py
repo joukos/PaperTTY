@@ -62,6 +62,10 @@ class WaveshareFull(WaveshareEPD):
     def init(self, **kwargs):
         pass
 
+    def scrub(self, fillsize=16):
+        """Scrub display - this module does not support partial refresh: fillsize is ignored"""
+        super().scrub(self.width)
+
     def draw(self, x, y, image):
         """Display an image - this module does not support partial refresh: x, y are ignored"""
         self.display_frame(self.get_frame_buffer(image))
