@@ -693,8 +693,7 @@ def terminal(settings, vcsa, font, fontsize, noclear, nocursor, cursor, sleep, t
         if vcom <= 0:
             print("VCOM should be a positive number. It will be converted automatically. eg. For a value of -1.46V, set VCOM to 1460")
             sys.exit(1)
-        else:
-            settings.args['vcom'] = vcom
+        settings.args['vcom'] = vcom
 
     if cursor == 'default' or cursor == 'legacy':
         settings.args['cursor'] = 'default'
