@@ -228,9 +228,7 @@ class IT8951(DisplayDriver):
         # Set to Enable I80 Packed mode.
         self.write_register(self.REG_I80CPCR, 0x0001)
 
-        for key, value in kwargs.items():
-            if key == 'vcom':
-                self.VCOM = value
+        self.VCOM = kwargs.get('vcom', self.VCOM)
             
         if self.VCOM != self.get_vcom():
             self.set_vcom(self.VCOM)
