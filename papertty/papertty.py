@@ -64,13 +64,14 @@ class PaperTTY:
     black = None
     encoding = None
     spacing = 0
+    vcom = None
     cursor = None
     rows = None
     cols = None
     is_truetype = None
     fontfile = None
 
-    def __init__(self, driver, font=defaultfont, fontsize=defaultsize, partial=None, encoding='utf-8', spacing=0, cursor=None):
+    def __init__(self, driver, font=defaultfont, fontsize=defaultsize, partial=None, encoding='utf-8', spacing=0, cursor=None, vcom=None):
         """Create a PaperTTY with the chosen driver and settings"""
         self.driver = get_drivers()[driver]['class']()
         self.spacing = spacing
@@ -81,6 +82,7 @@ class PaperTTY:
         self.black = self.driver.black
         self.encoding = encoding
         self.cursor = cursor
+        self.vcom = vcom
 
     def ready(self):
         """Check that the driver is loaded and initialized"""
@@ -232,7 +234,7 @@ class PaperTTY:
 
     def init_display(self):
         """Initialize the display - call the driver's init method"""
-        self.driver.init(partial=self.partial)
+        self.driver.init(partial=self.partial, vcom=self.vcom)
         self.initialized = True
 
     def fit(self, portrait=False):
@@ -669,9 +671,10 @@ def fb(settings, fb_num, rotate, invert, sleep, fullevery):
 @click.option('--autofit', is_flag=True, default=False, help='Autofit terminal size to font size', show_default=True)
 @click.option('--attributes', is_flag=True, default=False, help='Use attributes', show_default=True)
 @click.option('--interactive', is_flag=True, default=False, help='Interactive mode')
+@click.option('--vcom', default=None, help='VCOM as positive value x 1000. eg. 1460 = -1.46V')
 @click.pass_obj
 def terminal(settings, vcsa, font, fontsize, noclear, nocursor, cursor, sleep, ttyrows, ttycols, portrait, flipx, flipy,
-             spacing, apply_scrub, autofit, attributes, interactive):
+             spacing, apply_scrub, autofit, attributes, interactive, vcom):
     """Display virtual console on an e-Paper display, exit with Ctrl-C."""
     settings.args['font'] = font
     settings.args['fontsize'] = fontsize
@@ -684,6 +687,13 @@ def terminal(settings, vcsa, font, fontsize, noclear, nocursor, cursor, sleep, t
     if nocursor:
         print("--nocursor is deprecated. Use --cursor=none instead")
         settings.args['cursor'] = None
+
+    if vcom:
+        vcom = int(vcom)
+        if vcom <= 0:
+            print("VCOM should be a positive number. It will be converted automatically. eg. For a value of -1.46V, set VCOM to 1460")
+            sys.exit(1)
+        settings.args['vcom'] = vcom
 
     if cursor == 'default' or cursor == 'legacy':
         settings.args['cursor'] = 'default'
@@ -810,10 +820,10 @@ def terminal(settings, vcsa, font, fontsize, noclear, nocursor, cursor, sleep, t
                 elif ch == 'r':
                     if oldimage:
                         ptty.driver.reset()
-                        ptty.driver.init(partial=False)
+                        ptty.driver.init(partial=False, vcom=self.vcom)
                         ptty.driver.draw(0, 0, oldimage)
                         ptty.driver.reset()
-                        ptty.driver.init(ptty.partial)
+                        ptty.driver.init(partial=ptty.partial, vcom=self.vcom)
 
             # if user or SIGUSR1 toggled the scrub flag, scrub display and start with a fresh image
             if flags['scrub_requested']:
