@@ -260,7 +260,7 @@ class IT8951(DisplayDriver):
         self.write_command(self.CMD_LOAD_IMAGE_AREA)
         self.write_data_half_word(
                 (self.LOAD_IMAGE_L_ENDIAN << 8) |
-                (self.BPP_4 << 4) |
+                (self.BPP_2 << 4) |
                 self.ROTATE_0)
         self.write_data_half_word(x)
         self.write_data_half_word(y)
@@ -301,24 +301,28 @@ class IT8951(DisplayDriver):
             # The driver board assumes all data is read in as 16bit ints. To match
             # the endianness every pair of bytes must be swapped.
             # The image is always padded to a multiple of 8, so we can safely go in steps of 4.
-            for i in range(0, len(frame_buffer), 4):
-                if frame_buffer[i + 2] and frame_buffer[i + 3]:
-                    packed_buffer += [0xFF]
-                elif frame_buffer[i + 2]:
-                    packed_buffer += [0x0F]
-                elif frame_buffer[i + 3]:
-                    packed_buffer += [0xF0]
-                else:
-                    packed_buffer += [0]
+            for i in range(0, len(frame_buffer), 8):
+                thisbit = 0
+                if frame_buffer[i+7]:
+                    thisbit |= 0xC0
+                if frame_buffer[i+6]:
+                    thisbit |= 0x30
+                if frame_buffer[i+5]:
+                    thisbit |= 0xC
+                if frame_buffer[i+4]:
+                    thisbit |= 0x3
+                packed_buffer += [thisbit]
+                thisbit = 0
+                if frame_buffer[i+3]:
+                    thisbit |= 0xC0 
+                if frame_buffer[i+2]:
+                    thisbit |= 0x30
+                if frame_buffer[i+1]:
+                    thisbit |= 0xC
+                if frame_buffer[i+0]:
+                    thisbit |= 0x3
+                packed_buffer += [thisbit]
 
-                if frame_buffer[i] and frame_buffer[i + 1]:
-                    packed_buffer += [0xFF]
-                elif frame_buffer[i]:
-                    packed_buffer += [0x0F]
-                elif frame_buffer[i + 1]:
-                    packed_buffer += [0xF0]
-                else:
-                    packed_buffer += [0]
             return packed_buffer
         else:
             # old packing code for grayscale (VNC)
