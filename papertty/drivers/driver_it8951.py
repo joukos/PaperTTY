@@ -39,6 +39,8 @@ class IT8951(DisplayDriver):
 
     REG_DISPLAY_BASE = 0x1000
     REG_LUTAFSR = REG_DISPLAY_BASE + 0x224 # LUT Status Reg (status of All LUT Engines)
+    REG_UP1SR = REG_DISPLAY_BASE + 0x138 #Update Parameter1 Setting Reg
+    REG_BGVR = REG_DISPLAY_BASE + 0x250 #Bitmap (1bpp) image color table
 
     REG_MEMORY_CONV_BASE_ADDR = 0x0200
     REG_MEMORY_CONV = REG_MEMORY_CONV_BASE_ADDR + 0x0000
@@ -68,6 +70,10 @@ class IT8951(DisplayDriver):
     DISPLAY_UPDATE_MODE_GC16 = 2
     # For more documentation on display update modes see the reference document:
     # http://www.waveshare.net/w/upload/c/c4/E-paper-mode-declaration.pdf
+
+    #Colors for 1bpp mode register
+    Back_Gray_Val = 0xF0
+    Front_Gray_Val = 0x00
 
     def __init__(self):
         super().__init__()
@@ -246,28 +252,45 @@ class IT8951(DisplayDriver):
         self.write_data_half_word(h)
         self.write_data_half_word(display_mode)
 
-    def draw(self, x, y, image, update_mode_override=None):
+    def draw(self, x, y, image, update_mode_override=None, bpp=None):
         width = image.size[0]
         height = image.size[1]
 
         self.wait_for_display_ready()
 
-        self.write_register(
-                self.REG_MEMORY_CONV_LISAR + 2, (self.img_addr >> 16) & 0xFFFF)
-        self.write_register(self.REG_MEMORY_CONV_LISAR, self.img_addr & 0xFFFF)
+        #If bpp isn't set, and it's a fullscreen image, set to 1bpp by default
+        if bpp is None:
+            bpp = 1 if (width == self.width and height == self.height) else 4
+
+        if bpp == 1 and image.mode == "1" and x % 16 == 0 and image.width % 16 == 0:
+
+            #1bpp actually requires the panel to be set in 8bpp mode
+            bpp_mode = self.BPP_8
+
+            self.write_register(self.REG_UP1SR+2, self.read_register(self.REG_UP1SR+2) | (1<<2) )
+            self.write_register(self.REG_BGVR, (self.Front_Gray_Val<<8) | self.Back_Gray_Val)
+        else:
+            bpp = 4
+            bpp_mode = self.BPP_4
+
+            self.write_register(
+                    self.REG_MEMORY_CONV_LISAR + 2, (self.img_addr >> 16) & 0xFFFF)
+            self.write_register(self.REG_MEMORY_CONV_LISAR, self.img_addr & 0xFFFF)
 
         # Define the region being loaded.
         self.write_command(self.CMD_LOAD_IMAGE_AREA)
         self.write_data_half_word(
                 (self.LOAD_IMAGE_L_ENDIAN << 8) |
-                (self.BPP_2 << 4) |
+                (bpp_mode << 4) |
                 self.ROTATE_0)
-        self.write_data_half_word(x)
+
+        # x and width are set to value//8 if using 1bpp mode.
+        self.write_data_half_word((x//8) if bpp == 1 else x)
         self.write_data_half_word(y)
-        self.write_data_half_word(width)
+        self.write_data_half_word((width//8) if bpp == 1 else width)
         self.write_data_half_word(height)
 
-        packed_image = self.pack_image(image)
+        packed_image = self.pack_image(image, bpp)
         self.write_data_bytes(packed_image)
         self.write_command(self.CMD_LOAD_IMAGE_END);
 
@@ -283,64 +306,129 @@ class IT8951(DisplayDriver):
         # Blit the image to the display
         self.display_area(x, y, width, height, update_mode)
 
+        if bpp == 1:
+            self.write_register(self.REG_UP1SR+2, self.read_register(self.REG_UP1SR+2) & ~(1<<2) )
+
     def clear(self):
         image = Image.new('1', (self.width, self.height), self.white)
         self.draw(0, 0, image, self.DISPLAY_UPDATE_MODE_INIT)
 
-    def pack_image(self, image):
+    def pack_image(self, image, bpp):
         """Packs a PIL image for transfer over SPI to the driver board."""
         if image.mode == '1':
             # B/W pictured can be processed more quickly
             frame_buffer = list(image.getdata())
-
-            # For now, only 4 bit packing is supported. Theoretically we could
-            # achieve a transfer speed up by using 2 bit packing for black and white
-            # images. However, 2bpp doesn't seem to play well with the DU rendering
-            # mode.
-            packed_buffer = []
-            # The driver board assumes all data is read in as 16bit ints. To match
-            # the endianness every pair of bytes must be swapped.
-            # The image is always padded to a multiple of 8, so we can safely go in steps of 4.
-            for i in range(0, len(frame_buffer), 8):
-                thisbit = 0
-                if frame_buffer[i+7]:
-                    thisbit |= 0xC0
-                if frame_buffer[i+6]:
-                    thisbit |= 0x30
-                if frame_buffer[i+5]:
-                    thisbit |= 0xC
-                if frame_buffer[i+4]:
-                    thisbit |= 0x3
-                packed_buffer += [thisbit]
-                thisbit = 0
-                if frame_buffer[i+3]:
-                    thisbit |= 0xC0 
-                if frame_buffer[i+2]:
-                    thisbit |= 0x30
-                if frame_buffer[i+1]:
-                    thisbit |= 0xC
-                if frame_buffer[i+0]:
-                    thisbit |= 0x3
-                packed_buffer += [thisbit]
-
-            return packed_buffer
         else:
             # old packing code for grayscale (VNC)
+            bpp = 4
             image_grey = image.convert("L")
             frame_buffer = list(image_grey.getdata())
 
-            # For now, only 4 bit packing is supported. Theoretically we could
-            # achieve a transfer speed up by using 2 bit packing for black and white
-            # images. However, 2bpp doesn't seem to play well with the DU rendering
-            # mode.
-            packed_buffer = []
 
-            # The driver board assumes all data is read in as 16bit ints. To match
-            # the endianness every pair of bytes must be swapped.
-            # The image is always padded to a multiple of 8, so we can safely go in steps of 4.
-            for i in range(0, len(frame_buffer), 4):
-                # Values are in the range 0..255, so we don't need to "and" after we shift
-                packed_buffer += [(frame_buffer[i + 2] >> 4) | (frame_buffer[i + 3] & 0xF0)]
-                packed_buffer += [(frame_buffer[i] >> 4) | (frame_buffer[i + 1] & 0xF0)]
+        #Step is the number of bytes we need to read to create a word.
+        #A word is 2 bytes (16 bits) in size.
+        #However, the input data we use to create the word will vary
+        #in length depending on the bpp.
+        #eg. If bpp is 1, that means we only grab 1 bit from each
+        #input byte. So we would need 16 bytes to get the needed
+        #16 bits.
+        #Whereas if bpp is 4, then we grab 4 bits from each byte.
+        #So we'd only need to read 4 bytes to get 16 bits.
+        step = 16 // bpp
 
-            return packed_buffer
+        #A halfstep is how many input bytes we need to read from
+        #frame_buffer in order to pack a single output byte
+        #into packed_buffer.
+        halfstep = step // 2
+
+        #Set the size of packed_buffer to be the length of the
+        #frame buffer (total input bytes) divided by a halfstep
+        #(input bytes needed per packed byte).
+        packed_buffer = [0x00] * (len(frame_buffer) // halfstep)
+
+        #Select the packing function based on which bpp
+        #mode we're using.
+        if bpp == 1:
+            packfn = self.pack_1bpp
+        elif bpp == 2:
+            packfn = self.pack_2bpp
+        else:
+            packfn = self.pack_4bpp
+
+        #Step through the frame buffer and pack its bytes
+        #into packed_buffer.
+        for i in range(0, len(frame_buffer), step):
+            packfn(packed_buffer, i // halfstep, frame_buffer[i:i+step])
+        return packed_buffer
+
+    def pack_1bpp(self, packed_buffer, i, sixteenBytes):
+        """Pack an image in 1bpp format.
+
+        This only works for black and white images.
+        This code would look nicer with a loop, but using bitwise operators
+        like this is significantly faster. So the ugly code stays ;)
+
+        Bytes are read in reverse order because the driver board assumes all
+        data is read in as 16bit ints. So in order to match the endianness,
+        every pair of bytes must be swapped.
+        """
+        packed_buffer[i] = \
+            (1 if sixteenBytes[8] else 0) | \
+            (2 if sixteenBytes[9] else 0) | \
+            (4 if sixteenBytes[10] else 0) | \
+            (8 if sixteenBytes[11] else 0) | \
+            (16 if sixteenBytes[12] else 0) | \
+            (32 if sixteenBytes[13] else 0) | \
+            (64 if sixteenBytes[14] else 0) | \
+            (128 if sixteenBytes[15] else 0)
+        packed_buffer[i+1] = \
+            (1 if sixteenBytes[0] else 0) | \
+            (2 if sixteenBytes[1] else 0) | \
+            (4 if sixteenBytes[2] else 0) | \
+            (8 if sixteenBytes[3] else 0) | \
+            (16 if sixteenBytes[4] else 0) | \
+            (32 if sixteenBytes[5] else 0) | \
+            (64 if sixteenBytes[6] else 0) | \
+            (128 if sixteenBytes[7] else 0)
+
+    def pack_2bpp(self, packed_buffer, i, eightBytes):
+        """Pack an image in 2bpp format.
+
+        The utility of 2bpp format is questionable, as it only works properly
+        with GC16 mode. DU mode causes artifacts to remain.
+        It seems unlikely that this is a bug in driver_it8951.py given that
+        GC16 mode works correctly.
+
+        The waveshare reference code only ever uses GC16 mode with 2bpp, so
+        perhaps it's a bug within the IT8951 controller? Regardless, 1bpp is
+        faster, and 4bpp works with DU mode. So chances are you'd be better off
+        using one of those.
+
+        Bytes are read in reverse order because the driver board assumes all
+        data is read in as 16bit ints. So in order to match the endianness,
+        every pair of bytes must be swapped.
+        """
+        packed_buffer[i] = \
+            (3 if eightBytes[4] else 0) | \
+            (12 if eightBytes[5] else 0) | \
+            (48 if eightBytes[6] else 0) | \
+            (192 if eightBytes[7] else 0)
+        packed_buffer[i+1] = \
+            (3 if eightBytes[0] else 0) | \
+            (12 if eightBytes[1] else 0) | \
+            (48 if eightBytes[2] else 0) | \
+            (192 if eightBytes[3] else 0)
+
+    def pack_4bpp(self, packed_buffer, i, fourBytes):
+        """Pack an image in 4bpp format.
+
+        Bytes are read in reverse order because the driver board assumes all
+        data is read in as 16bit ints. So in order to match the endianness,
+        every pair of bytes must be swapped.
+        """
+        packed_buffer[i] = \
+            (15 if fourBytes[2] else 0) | \
+            (240 if fourBytes[3] else 0)
+        packed_buffer[i+1] = \
+            (15 if fourBytes[0] else 0) | \
+            (240 if fourBytes[1] else 0)
