@@ -222,6 +222,7 @@ class IT8951(DisplayDriver):
         lut_version = self.fixup_string(lut_version)
         self.img_addr = img_addr_h << 16 | img_addr_l
 
+        self.in_bpp1_mode = False
         self.a2_support = False
 
         #6inch e-Paper HAT(800,600), 6inch HD e-Paper HAT(1448,1072), 6inch HD touch e-Paper HAT(1448,1072)
@@ -302,11 +303,19 @@ class IT8951(DisplayDriver):
             #1bpp actually requires the panel to be set in 8bpp mode
             bpp_mode = self.BPP_8
 
-            self.write_register(self.REG_UP1SR+2, self.read_register(self.REG_UP1SR+2) | (1<<2) )
+            if not self.in_bpp1_mode:
+                self.write_register(self.REG_UP1SR+2, self.read_register(self.REG_UP1SR+2) | (1<<2) )
+                self.in_bpp1_mode = True
+                
             self.write_register(self.REG_BGVR, (self.Front_Gray_Val<<8) | self.Back_Gray_Val)
         else:
             bpp = 4
             bpp_mode = self.BPP_4
+
+            #If the last write was in 1bpp mode, unset that register
+            if self.in_bpp1_mode:
+                self.write_register(self.REG_UP1SR+2, self.read_register(self.REG_UP1SR+2) & ~(1<<2) )
+                self.in_bpp1_mode = False
 
             self.write_register(
                     self.REG_MEMORY_CONV_LISAR + 2, (self.img_addr >> 16) & 0xFFFF)
@@ -343,9 +352,6 @@ class IT8951(DisplayDriver):
             update_mode = self.DISPLAY_UPDATE_MODE_GC16
         # Blit the image to the display
         self.display_area(x, y, width, height, update_mode)
-
-        if bpp == 1:
-            self.write_register(self.REG_UP1SR+2, self.read_register(self.REG_UP1SR+2) & ~(1<<2) )
 
     def clear(self):
         image = Image.new('1', (self.width, self.height), self.white)
