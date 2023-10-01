@@ -71,6 +71,10 @@ class IT8951(DisplayDriver):
     # For more documentation on display update modes see the reference document:
     # http://www.waveshare.net/w/upload/c/c4/E-paper-mode-declaration.pdf
 
+    #A2 mode is super fast, but only supports 1bpp, and leaves more
+    #artifacts than other display modes.
+    DISPLAY_UPDATE_MODE_A2 = 6
+
     #Colors for 1bpp mode register
     Back_Gray_Val = 0xF0
     Front_Gray_Val = 0x00
@@ -218,6 +222,37 @@ class IT8951(DisplayDriver):
         lut_version = self.fixup_string(lut_version)
         self.img_addr = img_addr_h << 16 | img_addr_l
 
+        self.a2_support = False
+
+        #6inch e-Paper HAT(800,600), 6inch HD e-Paper HAT(1448,1072), 6inch HD touch e-Paper HAT(1448,1072)
+        if len(lut_version) >= 4 and lut_version[:4] == "M641":
+
+            #A2 mode is 4 instead of 6 for this model
+            self.DISPLAY_UPDATE_MODE_A2 = 4
+
+            #This model requires four-byte alignment.
+            #Don't enable a2 support until that has been implemented.
+            #a2_support = True
+
+        #9.7inch e-Paper HAT(1200,825)
+        elif len(lut_version) >= 4 and lut_version[:4] == "M841":
+            self.a2_support = True
+
+        #7.8inch e-Paper HAT(1872,1404)
+        elif len(lut_version) >= 12 and lut_version[:12] == "M841_TFA2812":
+            self.a2_support = True
+
+        #10.3inch e-Paper HAT(1872,1404)
+        elif len(lut_version) >= 12 and lut_version[:12] == "M841_TFA5210":
+            self.a2_support = True
+
+        #unknown model
+        else:
+            #It's PROBABLY safe to turn this to A2 instead of DU, but it would need a suitable test device.
+            #ie. A model not listed above.
+            #So for now, let's just leave it disabled
+            pass
+
         print("width = %d" % self.width)
         print("height = %d" % self.height)
         print("img_addr = %08x" % self.img_addr)
@@ -299,7 +334,10 @@ class IT8951(DisplayDriver):
         elif image.mode == "1":
             # Use a faster, non-flashy update mode for pure black and white
             # images.
-            update_mode = self.DISPLAY_UPDATE_MODE_DU
+            if bpp == 1 and self.a2_support:
+                update_mode = self.DISPLAY_UPDATE_MODE_A2
+            else:
+                update_mode = self.DISPLAY_UPDATE_MODE_DU
         else:
             # Use a slower, flashy update mode for gray scale images.
             update_mode = self.DISPLAY_UPDATE_MODE_GC16
