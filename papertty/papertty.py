@@ -111,7 +111,7 @@ class PaperTTY:
     def band(bb, xdiv = 8, ydiv = 1):
         """Stretch a bounding box's X coordinates to be divisible by 8,
            otherwise weird artifacts occur as some bits are skipped."""
-        print("Before band: "+str(bb))
+        #print("Before band: "+str(bb))
         return ( \
             int(bb[0] / xdiv) * xdiv, \
             int(bb[1] / ydiv) * ydiv, \
