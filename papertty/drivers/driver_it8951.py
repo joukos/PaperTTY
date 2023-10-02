@@ -296,6 +296,7 @@ class IT8951(DisplayDriver):
         self.write_data_half_word(h)
         self.write_data_half_word(display_mode)
 
+    def draw(self, x, y, image, update_mode_override=None):
         width = image.size[0]
         height = image.size[1]
 
