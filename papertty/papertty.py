@@ -108,10 +108,16 @@ class PaperTTY:
                 print("Try setting a sane size manually.")
 
     @staticmethod
-    def band(bb):
+    def band(bb, xdiv = 8, ydiv = 1):
         """Stretch a bounding box's X coordinates to be divisible by 8,
            otherwise weird artifacts occur as some bits are skipped."""
-        return (int(bb[0] / 8) * 8, bb[1], int((bb[2] + 7) / 8) * 8, bb[3]) if bb else None
+        print("Before band: "+str(bb))
+        return ( \
+            int(bb[0] / xdiv) * xdiv, \
+            int(bb[1] / ydiv) * ydiv, \
+            int((bb[2] + xdiv - 1) / xdiv) * xdiv, \
+            int((bb[3] + ydiv - 1) / ydiv) * ydiv \
+        ) if bb else None
 
     @staticmethod
     def split(s, n):
@@ -424,7 +430,13 @@ class PaperTTY:
             if oldimage and self.driver.supports_partial and self.partial:
                 # create a bounding box of the altered region and
                 # make the X coordinates divisible by 8
-                diff_bbox = self.band(self.img_diff(image, oldimage))
+                if self.bpp == 1:
+                    xdiv = 32
+                    ydiv = 32
+                else:
+                    xdiv = 8
+                    ydiv = 1
+                diff_bbox = self.band(self.img_diff(image, oldimage), xdiv=xdiv, ydiv=ydiv)
                 # crop the altered region and draw it on the display
                 if diff_bbox:
                     self.driver.draw(diff_bbox[0], diff_bbox[1], image.crop(diff_bbox))
