@@ -280,6 +280,14 @@ class IT8951(DisplayDriver):
         self.wait_for_ready()
         self.clear()
 
+        #Adjust screen size to accommodate 32px bounding in 1bpp mode
+        #Do this AFTER clearing the screen
+        self.width -= (self.width % 32)
+        self.height -= (self.height % 32)
+
+        print("adjusted width = %d" % self.width)
+        print("adjusted height = %d" % self.height)
+
     def display_area(self, x, y, w, h, display_mode):
         self.write_command(self.CMD_DISPLAY_AREA)
         self.write_data_half_word(x)
@@ -288,17 +296,21 @@ class IT8951(DisplayDriver):
         self.write_data_half_word(h)
         self.write_data_half_word(display_mode)
 
-    def draw(self, x, y, image, update_mode_override=None, bpp=None):
         width = image.size[0]
         height = image.size[1]
 
         self.wait_for_display_ready()
 
-        #If bpp isn't set, and it's a fullscreen image, set to 1bpp by default
-        if bpp is None:
-            bpp = 1 if (width == self.width and height == self.height) else 4
+        #If fullscreen image or dims are divisible by 32, set to 1bpp.
+        #Otherwise, set to 4bpp.
+        if width == self.width and height == self.height:
+            bpp = 1
+        elif width % 32 == 0 and height % 32 == 0:
+            bpp = 1
+        else:
+            bpp = 4
 
-        if bpp == 1 and image.mode == "1" and x % 16 == 0 and image.width % 16 == 0:
+        if bpp == 1 and image.mode == "1" and x % 16 == 0:
 
             #1bpp actually requires the panel to be set in 8bpp mode
             bpp_mode = self.BPP_8

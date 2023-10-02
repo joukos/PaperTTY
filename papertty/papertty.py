@@ -70,6 +70,7 @@ class PaperTTY:
     cols = None
     is_truetype = None
     fontfile = None
+    bpp = 4
 
     def __init__(self, driver, font=defaultfont, fontsize=defaultsize, partial=None, encoding='utf-8', spacing=0, cursor=None, vcom=None):
         """Create a PaperTTY with the chosen driver and settings"""
@@ -703,6 +704,9 @@ def terminal(settings, vcsa, font, fontsize, noclear, nocursor, cursor, sleep, t
         settings.args['cursor'] = cursor
 
     ptty = settings.get_init_tty()
+
+    isIt8951 = isinstance(ptty.driver, driver_it8951.IT8951)
+    ptty.bpp = 1 if isIt8951 else 4
 
     if apply_scrub:
         ptty.driver.scrub()
