@@ -283,7 +283,7 @@ class IT8951(DisplayDriver):
         #Adjust screen size to accommodate 32px bounding in 1bpp mode
         #Do this AFTER clearing the screen
         self.width -= (self.width % 32)
-        self.height -= (self.height % 32)
+        self.height -= (self.height % 16)
 
         print("adjusted width = %d" % self.width)
         print("adjusted height = %d" % self.height)
@@ -306,7 +306,7 @@ class IT8951(DisplayDriver):
         #Otherwise, set to 4bpp.
         if width == self.width and height == self.height:
             bpp = 1
-        elif width % 32 == 0 and height % 32 == 0:
+        elif width % 32 == 0 and height % 16 == 0:
             bpp = 1
         else:
             bpp = 4

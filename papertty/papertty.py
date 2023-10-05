@@ -432,7 +432,7 @@ class PaperTTY:
                 # make the X coordinates divisible by 8
                 if self.bpp == 1:
                     xdiv = 32
-                    ydiv = 32
+                    ydiv = 16
                 else:
                     xdiv = 8
                     ydiv = 1
