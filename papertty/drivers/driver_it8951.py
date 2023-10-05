@@ -310,34 +310,57 @@ class IT8951(DisplayDriver):
 
         self.wait_for_display_ready()
 
-        #If fullscreen image or dims are divisible by 32, set to 1bpp.
-        #Otherwise, set to 4bpp.
-        if width == self.width and height == self.height:
-            bpp = 1
-        elif width % 32 == 0 and height % 16 == 0:
-            bpp = 1
-        else:
-            bpp = 4
+        #Set to 4bpp by default
+        bpp = 4
 
-        if bpp == 1 and image.mode == "1" and x % 16 == 0:
+        #However, if the right conditions are met, switch to 1bpp mode.
+        #I'm not 100% sure that all of these are the exact conditions, but they appear
+        #to work consistently during testing.
+        #Conditions are:
+        #-1bpp mode is enabled in papertty (self.enable_1bpp)
+        #-image is black and white (image.mode == "1")
+        #-x coordinate is on an expected boundary
+        #-image is fullscreen OR width and height are divisible by the expected boundaries
+        if self.enable_1bpp and image.mode == "1" and x % self.align_1bpp_width == 0:
+            if width == self.width and height == self.height:
+                bpp = 1
+            elif width % self.align_1bpp_width == 0 and height % self.align_1bpp_height == 0:
+                bpp = 1
 
-            #1bpp actually requires the panel to be set in 8bpp mode
+        #Once we're sure that the panel can handle this image in 1bpp mode, it's time to
+        #put the panel in 1bpp mode
+        if bpp == 1:
+
+            #Confusingly, 1bpp actually requires the use of the 8bpp flag
             bpp_mode = self.BPP_8
 
+            #If the panel isn't already in 1bpp mode, write these specific commands to the
+            #register to put it into 1bpp mode.
+            #This is the important bit which actually puts it in 1bpp in spite of the 8bpp flag
             if not self.in_bpp1_mode:
                 self.write_register(self.REG_UP1SR+2, self.read_register(self.REG_UP1SR+2) | (1<<2) )
                 self.in_bpp1_mode = True
-                
+            
+            #Also write the black and white color table for 1bpp mode
             self.write_register(self.REG_BGVR, (self.Front_Gray_Val<<8) | self.Back_Gray_Val)
+
         else:
+            #If we're not in 1bpp mode, default to 4bpp.
+            #In theory we could instead go with 8bpp or 2bpp.
+            #But 8bpp would be a waste for a non-color panel.
+            #And 2bpp's usefulness seems quite limited as it doesn't add enough levels of gray
+            #to be worth the extra bit cost.
+            #So 1bpp and 4bpp seem like the best options for now.
+
             bpp = 4
             bpp_mode = self.BPP_4
 
-            #If the last write was in 1bpp mode, unset that register
+            #If the last write was in 1bpp mode, unset that register to take it out of 1bpp mode.
             if self.in_bpp1_mode:
                 self.write_register(self.REG_UP1SR+2, self.read_register(self.REG_UP1SR+2) & ~(1<<2) )
                 self.in_bpp1_mode = False
 
+            #Then write the expected registers for 4bpp mode.
             self.write_register(
                     self.REG_MEMORY_CONV_LISAR + 2, (self.img_addr >> 16) & 0xFFFF)
             self.write_register(self.REG_MEMORY_CONV_LISAR, self.img_addr & 0xFFFF)
