@@ -83,6 +83,10 @@ class IT8951(DisplayDriver):
         super().__init__()
         self.name = "IT8951"
         self.supports_partial = True
+        self.supports_1bpp = True
+        self.enable_1bpp = True
+        self.align_1bpp_width = 32
+        self.align_1bpp_height = 16
 
     def delay_ms(self, delaytime):
         time.sleep(float(delaytime) / 1000.0)
@@ -223,7 +227,9 @@ class IT8951(DisplayDriver):
         self.img_addr = img_addr_h << 16 | img_addr_l
 
         self.in_bpp1_mode = False
-        self.a2_support = False
+        self.enable_1bpp = kwargs.get('enable_1bpp', self.enable_1bpp)
+        self.supports_a2 = False
+        self.enable_a2 = kwargs.get('enable_a2', True)
 
         #6inch e-Paper HAT(800,600), 6inch HD e-Paper HAT(1448,1072), 6inch HD touch e-Paper HAT(1448,1072)
         if len(lut_version) >= 4 and lut_version[:4] == "M641":
@@ -233,19 +239,19 @@ class IT8951(DisplayDriver):
 
             #This model requires four-byte alignment.
             #Don't enable a2 support until that has been implemented.
-            #a2_support = True
+            #self.supports_a2 = True
 
         #9.7inch e-Paper HAT(1200,825)
         elif len(lut_version) >= 4 and lut_version[:4] == "M841":
-            self.a2_support = True
+            self.supports_a2 = True
 
         #7.8inch e-Paper HAT(1872,1404)
         elif len(lut_version) >= 12 and lut_version[:12] == "M841_TFA2812":
-            self.a2_support = True
+            self.supports_a2 = True
 
         #10.3inch e-Paper HAT(1872,1404)
         elif len(lut_version) >= 12 and lut_version[:12] == "M841_TFA5210":
-            self.a2_support = True
+            self.supports_a2 = True
 
         #unknown model
         else:
@@ -280,13 +286,15 @@ class IT8951(DisplayDriver):
         self.wait_for_ready()
         self.clear()
 
-        #Adjust screen size to accommodate 32px bounding in 1bpp mode
-        #Do this AFTER clearing the screen
-        self.width -= (self.width % 32)
-        self.height -= (self.height % 16)
+        if self.enable_1bpp:
+            #Adjust screen size to accommodate bounding in 1bpp mode
+            #Do this AFTER clearing the screen
+            self.width -= (self.width % self.align_1bpp_width)
+            self.height -= (self.height % self.align_1bpp_height)
 
-        print("adjusted width = %d" % self.width)
-        print("adjusted height = %d" % self.height)
+            print("1bpp support enabled")
+            print("adjusted width = %d" % self.width)
+            print("adjusted height = %d" % self.height)
 
     def display_area(self, x, y, w, h, display_mode):
         self.write_command(self.CMD_DISPLAY_AREA)
@@ -356,7 +364,7 @@ class IT8951(DisplayDriver):
         elif image.mode == "1":
             # Use a faster, non-flashy update mode for pure black and white
             # images.
-            if bpp == 1 and self.a2_support:
+            if bpp == 1 and self.supports_a2 and self.enable_a2:
                 update_mode = self.DISPLAY_UPDATE_MODE_A2
             else:
                 update_mode = self.DISPLAY_UPDATE_MODE_DU
