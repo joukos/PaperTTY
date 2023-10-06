@@ -417,8 +417,7 @@ class EPD3in7(WaveshareFull):
 
     def load_lut(self, lut):
         self.send_command(0x32)
-        for i in range(0, 105):
-            self.send_data(lut[i])
+        self.send_data_multi(lut)
 
     def display_frame(self, frame_buffer, *args):
         if frame_buffer:
