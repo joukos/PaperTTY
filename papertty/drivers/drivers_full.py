@@ -436,6 +436,45 @@ class EPD3in7(WaveshareFull):
 
             self.send_command(0x20)
             self.wait_until_idle()   
+    def pack_image(self, image):
+        """Packs a PIL image for transfer over SPI to the driver board."""
+
+        #Load image into a frame buffer
+        frame_buffer = list(image.getdata())
+
+        #Step is the number of input bytes (bytes from the image) we
+        #can pack into a single byte of the output bytes (packed buffer).
+        #This is currently hard-coded to 8, because only 1bpp mode is supported.
+        step = 8
+
+        #Set the size of packed_buffer to be the length of the
+        #frame buffer (total input bytes) divided by a step
+        #(input bytes needed per packed byte).
+        packed_buffer = [0x00] * (len(frame_buffer) // step)
+
+        #Step through the frame buffer and pack its bytes
+        #into packed_buffer.
+        for i in range(0, len(frame_buffer), step):
+            self.pack_1bpp(packed_buffer, i // step, frame_buffer[i:i+step])
+
+        return packed_buffer
+
+    def pack_1bpp(self, packed_buffer, i, eightBytes):
+        """Pack an image in 1bpp format.
+
+        This only works for black and white images.
+        This code would look nicer with a loop, but using bitwise operators
+        like this is significantly faster. So the ugly code stays ;)
+        """
+        packed_buffer[i] = \
+            (128 if eightBytes[0] else 0) | \
+            (64 if eightBytes[1] else 0) | \
+            (32 if eightBytes[2] else 0) | \
+            (16 if eightBytes[3] else 0) | \
+            (8 if eightBytes[4] else 0) | \
+            (4 if eightBytes[5] else 0) | \
+            (2 if eightBytes[6] else 0) | \
+            (1 if eightBytes[7] else 0)
 
     def sleep(self):
         self.send_command(0X50) # DEEP_SLEEP_MODE
