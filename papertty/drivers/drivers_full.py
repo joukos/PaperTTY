@@ -430,12 +430,16 @@ class EPD3in7(WaveshareFull):
             self.send_data(0x00)
 
             self.send_command(0x24)
-            for j in range(0, self.height):
-                for i in range(0, int(self.width / 8)):
-                    self.send_data(frame_buffer[i + j * int(self.width / 8)])   
+            self.send_data_multi(frame_buffer)
 
             self.send_command(0x20)
-            self.wait_until_idle()   
+            self.wait_until_idle()
+
+    def draw(self, x, y, image):
+        """Display an image - this module does not support partial refresh: x, y are ignored"""
+        frame_buffer = self.pack_image(image)
+        self.display_frame(frame_buffer, x, y)
+
     def pack_image(self, image):
         """Packs a PIL image for transfer over SPI to the driver board."""
 

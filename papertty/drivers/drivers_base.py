@@ -222,6 +222,12 @@ class WaveshareEPD(DisplayDriver):
         # so use [data] instead of data
         self.spi_transfer([data])
 
+    def send_data_multi(self, dataArray):
+        self.digital_write(self.DC_PIN, GPIO.HIGH)
+        max_transfer_size = 4096
+        for i in range(0, len(dataArray), max_transfer_size):
+            self.spi_transfer(dataArray[i: i + max_transfer_size])
+
     def reset(self):
         self.digital_write(self.RST_PIN, GPIO.LOW)
         self.delay_ms(200)
