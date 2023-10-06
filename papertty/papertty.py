@@ -635,6 +635,10 @@ def image(settings, image_location, stretch, no_resize, fill_color, mirror, flip
         image = Image.open(image_data)
     else:
         image = Image.open(image_location)
+    
+    #Disable 1bpp and a2 by default if not using terminal mode
+    settings.args['enable_a2'] = False
+    settings.args['enable_1bpp'] = False
 
     ptty = settings.get_init_tty()
     display_image(ptty.driver, image, stretch=stretch, no_resize=no_resize, fill_color=fill_color, rotate=rotate, mirror=mirror, flip=flip)
@@ -651,6 +655,11 @@ def image(settings, image_location, stretch, no_resize, fill_color, mirror, flip
 @click.pass_obj
 def vnc(settings, host, display, password, rotate, invert, sleep, fullevery):
     """Display a VNC desktop"""
+    
+    #Disable 1bpp and a2 by default if not using terminal mode
+    settings.args['enable_a2'] = False
+    settings.args['enable_1bpp'] = False
+
     ptty = settings.get_init_tty()
     ptty.showvnc(host, display, password, int(rotate) if rotate else None, invert, sleep, fullevery)
 
