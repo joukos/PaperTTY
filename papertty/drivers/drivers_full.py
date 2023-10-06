@@ -439,6 +439,51 @@ class EPD3in7(WaveshareFull):
         frame_buffer = self.pack_image(image)
         self.display_frame(frame_buffer, x, y)
 
+    def display_partial(self, frame_buffer, x_start, y_start, x_end, y_end):
+        """Partial refresh has been added, but it is not turned on.
+        This is because, while it does work, there are weird visual artifacts.
+
+        Following the waveshare docs and experimenting with various settings has
+        done nothing.
+        The only thing which gets rid of the artifacts is forcing a clear,
+        or sending command 0x20 twice, both of which are undesirable.
+
+        I suspect that this is a bug with the 3in7 device, considering that partial
+        refresh is absent from Waveshare's python examples, and other projects
+        supporting this panel have omitted the partial refresh function.
+        """
+        
+        width = ((x_end-x_start)/8) if ((x_end-x_start)%8 == 0) else ((x_end-x_start)/8+1)
+        height = y_end - y_start
+
+        x_end -= 1
+        y_end -= 1
+
+        self.send_command(0x44)
+        self.send_data(x_start % 256)
+        self.send_data(x_start // 256)
+        self.send_data(x_end % 256)
+        self.send_data(x_end // 256)
+        self.send_command(0x45)
+        self.send_data(y_start % 256)
+        self.send_data(y_start // 256)
+        self.send_data(y_end % 256)
+        self.send_data(y_end // 256)
+
+        self.send_command(0x4E) # SET_RAM_X_ADDRESS_COUNTER
+        self.send_data(x_start % 256)
+
+        self.send_command(0x4F) # SET_RAM_Y_ADDRESS_COUNTER
+        self.send_data(y_start % 256)
+        self.send_data(y_start // 256)
+        
+        self.send_command(0x24)
+        self.send_data_multi(frame_buffer)
+
+        self.load_lut(self.lut_1Gray_A2)
+        self.send_command(0x20)
+        self.wait_until_idle()
+
     def pack_image(self, image):
         """Packs a PIL image for transfer over SPI to the driver board."""
 
