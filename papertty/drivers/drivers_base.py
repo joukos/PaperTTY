@@ -46,6 +46,10 @@ class DisplayDriver(ABC):
         self.type = None
         self.supports_partial = None
         self.partial_refresh = None
+        self.supports_1bpp = None
+        self.enable_1bpp = None
+        self.align_1bpp_width = None
+        self.align_1bpp_height = None
 
     @abstractmethod
     def init(self, **kwargs):
