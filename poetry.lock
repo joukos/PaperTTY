@@ -95,7 +95,7 @@ description = "A module to control Raspberry Pi GPIO channels"
 name = "rpi.gpio"
 optional = false
 python-versions = "*"
-version = "0.7.0"
+version = "0.7.1"
 
 [[package]]
 category = "main"
@@ -233,7 +233,7 @@ pyhamcrest = [
     {file = "PyHamcrest-2.0.2.tar.gz", hash = "sha256:412e00137858f04bde0729913874a48485665f2d36fe9ee449f26be864af9316"},
 ]
 "rpi.gpio" = [
-    {file = "RPi.GPIO-0.7.0.tar.gz", hash = "sha256:7424bc6c205466764f30f666c18187a0824077daf20b295c42f08aea2cb87d3f"},
+    {file = "RPi.GPIO-0.7.1.tar.gz", hash = "sha256:cd61c4b03c37b62bba4a5acfea9862749c33c618e0295e7e90aa4713fb373b70"},
 ]
 six = [
     {file = "six-1.15.0-py2.py3-none-any.whl", hash = "sha256:8b74bedcbbbaca38ff6d7491d76f2b06b3592611af620f8426e82dddb04a5ced"},
