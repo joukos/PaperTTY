@@ -146,7 +146,7 @@ class PaperTTY:
     def ttydev(vcsa):
         """Return associated tty for vcsa device, ie. /dev/vcsa1 -> /dev/tty1"""
         return vcsa.replace("vcsa", "tty")
-    
+
     def vcsudev(self, vcsa):
         """Return character width and associated vcs(u) for vcsa device,
            ie. for /dev/vcsa1, retunr (4, "/dev/vcsu1") if vcsu is available, or
@@ -449,7 +449,7 @@ class PaperTTY:
             return image
         else:
             self.error("Display not ready")
-    
+
     def clear(self):
         """Clears the display; set all black, then all white, or use INIT mode, if driver supports it."""
         if self.ready():
@@ -528,7 +528,7 @@ def display_image(driver, image, stretch=False, no_resize=False, fill_color="whi
         image = ImageOps.flip(image)
     if rotate:
         image = image.rotate(rotate, expand=True, fillcolor=fill_color)
-        
+
     image_width, image_height = image.size
 
     if stretch:
@@ -579,7 +579,7 @@ def list_drivers():
 
 
 @click.command()
-@click.option('--size', default=16, help='Stripe size to fill with (8-32)')
+@click.option('--size', default=24, help='Stripe size to fill with (8-32)')
 @click.pass_obj
 def scrub(settings, size):
     """Slowly fill with black, then white"""
@@ -635,7 +635,7 @@ def image(settings, image_location, stretch, no_resize, fill_color, mirror, flip
         image = Image.open(image_data)
     else:
         image = Image.open(image_location)
-    
+
     #Disable 1bpp and a2 by default if not using terminal mode
     settings.args['enable_a2'] = False
     settings.args['enable_1bpp'] = False
@@ -655,7 +655,7 @@ def image(settings, image_location, stretch, no_resize, fill_color, mirror, flip
 @click.pass_obj
 def vnc(settings, host, display, password, rotate, invert, sleep, fullevery):
     """Display a VNC desktop"""
-    
+
     #Disable 1bpp and a2 by default if not using terminal mode
     settings.args['enable_a2'] = False
     settings.args['enable_1bpp'] = False
@@ -721,7 +721,7 @@ def terminal(settings, vcsa, font, fontsize, noclear, nocursor, cursor, sleep, t
             print("VCOM should be a positive number. It will be converted automatically. eg. For a value of -1.46V, set VCOM to 1460")
             sys.exit(1)
         settings.args['vcom'] = vcom
-    
+
     settings.args['enable_a2'] = not disable_a2
     settings.args['enable_1bpp'] = not disable_1bpp
 
@@ -741,7 +741,7 @@ def terminal(settings, vcsa, font, fontsize, noclear, nocursor, cursor, sleep, t
     oldcursor = None
     # dirty - should refactor to make this cleaner
     flags = {'scrub_requested': False, 'show_menu': False, 'clear': False}
-    
+
     # handle SIGINT from `systemctl stop` and Ctrl-C
     def sigint_handler(sig, frame):
         if not interactive:
@@ -862,14 +862,14 @@ def terminal(settings, vcsa, font, fontsize, noclear, nocursor, cursor, sleep, t
                 oldimage = None
                 oldbuff = ''
                 flags['scrub_requested'] = False
-            
+
             with open(vcsa, 'rb') as f:
                 with open(vcsudev, 'rb') as vcsu:
                     # read the first 4 bytes to get the console attributes
                     attributes = f.read(4)
                     rows, cols, x, y = list(map(ord, struct.unpack('cccc', attributes)))
 
-                    # read from the text buffer 
+                    # read from the text buffer
                     buff = vcsu.read()
                     if character_width == 4:
                         # work around weird bug
