@@ -162,7 +162,7 @@ class IT8951(DisplayDriver):
         When the busy pin is high the controller is busy and may drop any
         commands that are sent to it."""
         while GPIO.input(self.BUSY_PIN) == 0:
-            self.delay_ms(80) # Originally 100
+            self.delay_ms(100) # Originally 100
 
     def wait_for_display_ready(self):
         """Waits for the display to be finished updating.
@@ -171,7 +171,7 @@ class IT8951(DisplayDriver):
         display to still be refreshing. This will wait for the display to be
         stable."""
         while self.read_register(self.REG_LUTAFSR) != 0:
-            self.delay_ms(80) # Originally 100
+            self.delay_ms(100) # Originally 100
 
     def get_vcom(self):
         self.wait_for_ready()
@@ -242,11 +242,11 @@ class IT8951(DisplayDriver):
         if len(lut_version) >= 4 and lut_version[:4] == "M641":
             print("lut_version M641 - DISPLAY_UPDATE_MODE_A2 = 4")
 
-            #A2 mode is 4 instead of 6 for this model
-            self.DISPLAY_UPDATE_MODE_A2 = 4
-
             #self.Four_Byte_Align = True
             self.set_four_byte_align
+
+            #A2 mode is 4 instead of 6 for this model
+            self.DISPLAY_UPDATE_MODE_A2 = 4
 
             #Don't enable a2 support until that has been implemented.
             self.supports_a2 = True
@@ -255,28 +255,29 @@ class IT8951(DisplayDriver):
         elif len(lut_version) >= 12 and lut_version[:12] == "M841_TFAB512":
             # self.DISPLAY_UPDATE_MODE_A2 = 6
             print("lut_version M841 - DISPLAY_UPDATE_MODE_A2 = 6")
-            self.DISPLAY_UPDATE_MODE_A2 = 6
 
             self.set_four_byte_align
+            self.DISPLAY_UPDATE_MODE_A2 = 6
             self.supports_a2 = True
 
-        #9.7inch e-Paper HAT(1200,825)
-        elif len(lut_version) >= 4 and lut_version[:4] == "M841":
-            self.supports_a2 = True
-
-        #7.8inch e-Paper HAT(1872,1404)
-        elif len(lut_version) >= 12 and lut_version[:12] == "M841_TFA2812":
-            self.supports_a2 = True
-
-        #10.3inch e-Paper HAT(1872,1404)
-        elif len(lut_version) >= 12 and lut_version[:12] == "M841_TFA5210":
-            self.supports_a2 = True
+        # #9.7inch e-Paper HAT(1200,825)
+        # elif len(lut_version) >= 4 and lut_version[:4] == "M841":
+        #     self.supports_a2 = True
+        #
+        # #7.8inch e-Paper HAT(1872,1404)
+        # elif len(lut_version) >= 12 and lut_version[:12] == "M841_TFA2812":
+        #     self.supports_a2 = True
+        #
+        # #10.3inch e-Paper HAT(1872,1404)
+        # elif len(lut_version) >= 12 and lut_version[:12] == "M841_TFA5210":
+        #     self.supports_a2 = True
 
         #unknown model
         else:
             #It's PROBABLY safe to turn this to A2 instead of DU, but it would need a suitable test device.
             #ie. A model not listed above.
             #So for now, let's just leave it disabled
+            print("Unknown model?")
             pass
 
         print("width = %d" % self.width)
