@@ -277,8 +277,6 @@ class IT8951(DisplayDriver):
             #It's PROBABLY safe to turn this to A2 instead of DU, but it would need a suitable test device.
             #ie. A model not listed above.
             #So for now, let's just leave it disabled
-            print("lut_version went wrong")
-            print("lut_version M841 - DISPLAY_UPDATE_MODE_A2 = 6")
             pass
 
         print("width = %d" % self.width)
@@ -384,8 +382,7 @@ class IT8951(DisplayDriver):
                 self.in_bpp1_mode = False
 
             #Then write the expected registers for 4bpp mode.
-            self.write_register(
-                    self.REG_MEMORY_CONV_LISAR + 2, (self.img_addr >> 16) & 0xFFFF)
+            self.write_register(self.REG_MEMORY_CONV_LISAR + 2, (self.img_addr >> 16) & 0xFFFF)
             self.write_register(self.REG_MEMORY_CONV_LISAR, self.img_addr & 0xFFFF)
 
         # Define the region being loaded.
