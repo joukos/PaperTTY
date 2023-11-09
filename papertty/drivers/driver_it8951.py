@@ -162,7 +162,7 @@ class IT8951(DisplayDriver):
         When the busy pin is high the controller is busy and may drop any
         commands that are sent to it."""
         while GPIO.input(self.BUSY_PIN) == 0:
-            self.delay_ms(100)
+            self.delay_ms(80) # Originally 100
 
     def wait_for_display_ready(self):
         """Waits for the display to be finished updating.
@@ -171,7 +171,7 @@ class IT8951(DisplayDriver):
         display to still be refreshing. This will wait for the display to be
         stable."""
         while self.read_register(self.REG_LUTAFSR) != 0:
-            self.delay_ms(100)
+            self.delay_ms(80) # Originally 100
 
     def get_vcom(self):
         self.wait_for_ready()
@@ -201,7 +201,7 @@ class IT8951(DisplayDriver):
         GPIO.setup(self.CS_PIN, GPIO.OUT)
         GPIO.setup(self.BUSY_PIN, GPIO.IN)
         self.SPI = spidev.SpiDev(0, 0)
-        self.SPI.max_speed_hz = 24000000 # Originally 2 Mhz
+        self.SPI.max_speed_hz = 20000000 # Originally 2 Mhz
         self.SPI.mode = 0b00
 
         # It is unclear why this is necessary but it appears to be. The sample
