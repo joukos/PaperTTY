@@ -24,6 +24,7 @@ class IT8951(DisplayDriver):
     CS_PIN = 8
     BUSY_PIN = 24
 
+    # My personal setting for VCOM
     VCOM = 2140
 
     CMD_GET_DEVICE_INFO = [0x03, 0x02]
@@ -161,7 +162,8 @@ class IT8951(DisplayDriver):
         When the busy pin is high the controller is busy and may drop any
         commands that are sent to it."""
         while GPIO.input(self.BUSY_PIN) == 0:
-            self.delay_ms(100)
+            # This is just a test!
+            self.delay_ms(50)
 
     def wait_for_display_ready(self):
         """Waits for the display to be finished updating.
@@ -185,8 +187,7 @@ class IT8951(DisplayDriver):
 
     def fixup_string(self, s):
         result = ""
-        # Just for testing:
-        print(s)
+
         for i in range(0, len(s), 2):
             result += "%c%c" % (s[i + 1], s[i])
         null_index = result.find("\0")
@@ -250,9 +251,9 @@ class IT8951(DisplayDriver):
             #Don't enable a2 support until that has been implemented.
             self.supports_a2 = True
 
+        # Alternative for 6inch HD
         elif len(lut_version) >= 12 and lut_version[:12] == "M841_TFAB512":
-            # Alternative for 6inch HD
-            self.DISPLAY_UPDATE_MODE_A2 = 6
+            # self.DISPLAY_UPDATE_MODE_A2 = 6
 
             self.set_four_byte_align
             self.supports_a2 = True
