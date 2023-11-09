@@ -88,6 +88,11 @@ class IT8951(DisplayDriver):
         self.align_1bpp_width = 32
         self.align_1bpp_height = 16
 
+    def set_four_byte_align(self):
+        """Set four byte alignement"""
+        self.width = self.width - (self.width % 32)
+        self.height = self.height - self.height/16
+
     def delay_ms(self, delaytime):
         time.sleep(float(delaytime) / 24000.0)
 
@@ -238,8 +243,7 @@ class IT8951(DisplayDriver):
             self.DISPLAY_UPDATE_MODE_A2 = 4
 
             #self.Four_Byte_Align = True
-            self.width = self.width - (self.width % 32)
-            self.height = self.height - self.height/16
+            self.set_four_byte_align
 
             #Don't enable a2 support until that has been implemented.
             self.supports_a2 = True
@@ -247,8 +251,8 @@ class IT8951(DisplayDriver):
         elif len(lut_version) >= 12 and lut_version[:12] == "M841_TFAB512":
             # Alternative for 6inch HD
             self.DISPLAY_UPDATE_MODE_A2 = 6
-            self.width = self.width - (self.width % 32)
-            self.height = self.height - self.height/16
+
+            self.set_four_byte_align
             self.supports_a2 = True
 
         #9.7inch e-Paper HAT(1200,825)
@@ -268,6 +272,8 @@ class IT8951(DisplayDriver):
             #It's PROBABLY safe to turn this to A2 instead of DU, but it would need a suitable test device.
             #ie. A model not listed above.
             #So for now, let's just leave it disabled
+            self.set_four_byte_align
+            self.supports_a2 = True
             pass
 
         print("width = %d" % self.width)
@@ -289,7 +295,7 @@ class IT8951(DisplayDriver):
         vcom = kwargs.get('vcom', None)
         if vcom:
             self.VCOM = vcom
-            
+
         if self.VCOM != self.get_vcom():
             self.set_vcom(self.VCOM)
             print("VCOM = -%.02fV" % (self.get_vcom() / 1000.0))
@@ -352,7 +358,7 @@ class IT8951(DisplayDriver):
             if not self.in_bpp1_mode:
                 self.write_register(self.REG_UP1SR+2, self.read_register(self.REG_UP1SR+2) | (1<<2) )
                 self.in_bpp1_mode = True
-            
+
             #Also write the black and white color table for 1bpp mode
             self.write_register(self.REG_BGVR, (self.Front_Gray_Val<<8) | self.Back_Gray_Val)
 
