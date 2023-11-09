@@ -272,8 +272,6 @@ class IT8951(DisplayDriver):
             #It's PROBABLY safe to turn this to A2 instead of DU, but it would need a suitable test device.
             #ie. A model not listed above.
             #So for now, let's just leave it disabled
-            self.set_four_byte_align
-            self.supports_a2 = True
             pass
 
         print("width = %d" % self.width)
