@@ -95,7 +95,7 @@ class IT8951(DisplayDriver):
         self.height = self.height - self.height/16
 
     def delay_ms(self, delaytime):
-        time.sleep(float(delaytime) / 24000.0)
+        time.sleep(float(delaytime) / 1000.0)
 
     def spi_write(self, data):
         """Write raw bytes over SPI."""
@@ -201,7 +201,7 @@ class IT8951(DisplayDriver):
         GPIO.setup(self.CS_PIN, GPIO.OUT)
         GPIO.setup(self.BUSY_PIN, GPIO.IN)
         self.SPI = spidev.SpiDev(0, 0)
-        self.SPI.max_speed_hz = 20000000
+        self.SPI.max_speed_hz = 2000000
         self.SPI.mode = 0b00
 
         # It is unclear why this is necessary but it appears to be. The sample
@@ -215,9 +215,9 @@ class IT8951(DisplayDriver):
 
         # Reset the device to its initial state.
         GPIO.output(self.RST_PIN, GPIO.LOW)
-        self.delay_ms(400) # Originally 500
+        self.delay_ms(500) # Originally 500
         GPIO.output(self.RST_PIN, GPIO.HIGH)
-        self.delay_ms(400) # Originally 500
+        self.delay_ms(500) # Originally 500
 
         self.write_command(self.CMD_GET_DEVICE_INFO);
 
@@ -382,7 +382,8 @@ class IT8951(DisplayDriver):
                 self.in_bpp1_mode = False
 
             #Then write the expected registers for 4bpp mode.
-            self.write_register(self.REG_MEMORY_CONV_LISAR + 2, (self.img_addr >> 16) & 0xFFFF)
+            self.write_register(
+                self.REG_MEMORY_CONV_LISAR + 2, (self.img_addr >> 16) & 0xFFFF)
             self.write_register(self.REG_MEMORY_CONV_LISAR, self.img_addr & 0xFFFF)
 
         # Define the region being loaded.
