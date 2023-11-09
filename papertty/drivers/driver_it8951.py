@@ -278,6 +278,11 @@ class IT8951(DisplayDriver):
             #ie. A model not listed above.
             #So for now, let's just leave it disabled
             print("lut_version went wrong")
+            print("lut_version M841 - DISPLAY_UPDATE_MODE_A2 = 6")
+            self.DISPLAY_UPDATE_MODE_A2 = 6
+
+            self.set_four_byte_align
+            self.supports_a2 = True
             pass
 
         print("width = %d" % self.width)
