@@ -185,6 +185,8 @@ class IT8951(DisplayDriver):
 
     def fixup_string(self, s):
         result = ""
+        # Just for testing:
+        print(s)
         for i in range(0, len(s), 2):
             result += "%c%c" % (s[i + 1], s[i])
         null_index = result.find("\0")
@@ -279,6 +281,7 @@ class IT8951(DisplayDriver):
         print("img_addr = %08x" % self.img_addr)
         print("firmware = %s" % firmware_version)
         print("lut = %s" % lut_version)
+        print("I'm messing with'ya!")
 
         # Ensure that the returned device info looks sane. If it doesn't, then
         # there is little chance that any of the other operations are going to
