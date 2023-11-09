@@ -24,7 +24,7 @@ class IT8951(DisplayDriver):
     CS_PIN = 8
     BUSY_PIN = 24
 
-    VCOM = 2000
+    VCOM = 2140
 
     CMD_GET_DEVICE_INFO = [0x03, 0x02]
     CMD_WRITE_REGISTER = [0x00, 0x11]
@@ -89,7 +89,7 @@ class IT8951(DisplayDriver):
         self.align_1bpp_height = 16
 
     def delay_ms(self, delaytime):
-        time.sleep(float(delaytime) / 1000.0)
+        time.sleep(float(delaytime) / 24000.0)
 
     def spi_write(self, data):
         """Write raw bytes over SPI."""
@@ -194,7 +194,7 @@ class IT8951(DisplayDriver):
         GPIO.setup(self.CS_PIN, GPIO.OUT)
         GPIO.setup(self.BUSY_PIN, GPIO.IN)
         self.SPI = spidev.SpiDev(0, 0)
-        self.SPI.max_speed_hz = 2000000
+        self.SPI.max_speed_hz = 20000000
         self.SPI.mode = 0b00
 
         # It is unclear why this is necessary but it appears to be. The sample
@@ -237,9 +237,19 @@ class IT8951(DisplayDriver):
             #A2 mode is 4 instead of 6 for this model
             self.DISPLAY_UPDATE_MODE_A2 = 4
 
-            #This model requires four-byte alignment.
+            #self.Four_Byte_Align = True
+            self.width = self.width - (self.width % 32)
+            self.height = self.height - self.height/16
+
             #Don't enable a2 support until that has been implemented.
-            #self.supports_a2 = True
+            self.supports_a2 = True
+
+        elif len(lut_version) >= 12 and lut_version[:12] == "M841_TFAB512":
+            # Alternative for 6inch HD
+            self.DISPLAY_UPDATE_MODE_A2 = 6
+            self.width = self.width - (self.width % 32)
+            self.height = self.height - self.height/16
+            self.supports_a2 = True
 
         #9.7inch e-Paper HAT(1200,825)
         elif len(lut_version) >= 4 and lut_version[:4] == "M841":
