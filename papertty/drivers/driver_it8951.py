@@ -201,7 +201,7 @@ class IT8951(DisplayDriver):
         GPIO.setup(self.CS_PIN, GPIO.OUT)
         GPIO.setup(self.BUSY_PIN, GPIO.IN)
         self.SPI = spidev.SpiDev(0, 0)
-        self.SPI.max_speed_hz = 20000000 # Originally 2 Mhz
+        self.SPI.max_speed_hz = 20000000
         self.SPI.mode = 0b00
 
         # It is unclear why this is necessary but it appears to be. The sample
@@ -215,9 +215,9 @@ class IT8951(DisplayDriver):
 
         # Reset the device to its initial state.
         GPIO.output(self.RST_PIN, GPIO.LOW)
-        self.delay_ms(500)
+        self.delay_ms(400) # Originally 500
         GPIO.output(self.RST_PIN, GPIO.HIGH)
-        self.delay_ms(500)
+        self.delay_ms(400) # Originally 500
 
         self.write_command(self.CMD_GET_DEVICE_INFO);
 
@@ -253,7 +253,7 @@ class IT8951(DisplayDriver):
         # Alternative for 6inch HD
         elif len(lut_version) >= 12 and lut_version[:12] == "M841_TFAB512":
             # self.DISPLAY_UPDATE_MODE_A2 = 6
-            self.DISPLAY_UPDATE_MODE_A2 = 4
+            self.DISPLAY_UPDATE_MODE_A2 = 6
 
             self.set_four_byte_align
             self.supports_a2 = True
@@ -275,6 +275,10 @@ class IT8951(DisplayDriver):
             #It's PROBABLY safe to turn this to A2 instead of DU, but it would need a suitable test device.
             #ie. A model not listed above.
             #So for now, let's just leave it disabled
+            self.DISPLAY_UPDATE_MODE_A2 = 6
+
+            self.set_four_byte_align
+            self.supports_a2 = True
             pass
 
         print("width = %d" % self.width)
