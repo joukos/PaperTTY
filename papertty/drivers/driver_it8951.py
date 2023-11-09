@@ -162,8 +162,7 @@ class IT8951(DisplayDriver):
         When the busy pin is high the controller is busy and may drop any
         commands that are sent to it."""
         while GPIO.input(self.BUSY_PIN) == 0:
-            # This is just a test!
-            self.delay_ms(50)
+            self.delay_ms(80) # Originally 100
 
     def wait_for_display_ready(self):
         """Waits for the display to be finished updating.
@@ -172,7 +171,7 @@ class IT8951(DisplayDriver):
         display to still be refreshing. This will wait for the display to be
         stable."""
         while self.read_register(self.REG_LUTAFSR) != 0:
-            self.delay_ms(100)
+            self.delay_ms(80) # Originally 100
 
     def get_vcom(self):
         self.wait_for_ready()
@@ -202,7 +201,7 @@ class IT8951(DisplayDriver):
         GPIO.setup(self.CS_PIN, GPIO.OUT)
         GPIO.setup(self.BUSY_PIN, GPIO.IN)
         self.SPI = spidev.SpiDev(0, 0)
-        self.SPI.max_speed_hz = 20000000
+        self.SPI.max_speed_hz = 24000000 # Originally 2 Mhz
         self.SPI.mode = 0b00
 
         # It is unclear why this is necessary but it appears to be. The sample
@@ -254,6 +253,7 @@ class IT8951(DisplayDriver):
         # Alternative for 6inch HD
         elif len(lut_version) >= 12 and lut_version[:12] == "M841_TFAB512":
             # self.DISPLAY_UPDATE_MODE_A2 = 6
+            self.DISPLAY_UPDATE_MODE_A2 = 4
 
             self.set_four_byte_align
             self.supports_a2 = True
@@ -282,7 +282,6 @@ class IT8951(DisplayDriver):
         print("img_addr = %08x" % self.img_addr)
         print("firmware = %s" % firmware_version)
         print("lut = %s" % lut_version)
-        print("I'm messing with'ya!")
 
         # Ensure that the returned device info looks sane. If it doesn't, then
         # there is little chance that any of the other operations are going to
