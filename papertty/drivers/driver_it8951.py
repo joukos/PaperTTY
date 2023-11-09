@@ -240,6 +240,7 @@ class IT8951(DisplayDriver):
 
         #6inch e-Paper HAT(800,600), 6inch HD e-Paper HAT(1448,1072), 6inch HD touch e-Paper HAT(1448,1072)
         if len(lut_version) >= 4 and lut_version[:4] == "M641":
+            print("lut_version M641 - DISPLAY_UPDATE_MODE_A2 = 4")
 
             #A2 mode is 4 instead of 6 for this model
             self.DISPLAY_UPDATE_MODE_A2 = 4
@@ -253,6 +254,7 @@ class IT8951(DisplayDriver):
         # Alternative for 6inch HD
         elif len(lut_version) >= 12 and lut_version[:12] == "M841_TFAB512":
             # self.DISPLAY_UPDATE_MODE_A2 = 6
+            print("lut_version M841 - DISPLAY_UPDATE_MODE_A2 = 6")
             self.DISPLAY_UPDATE_MODE_A2 = 6
 
             self.set_four_byte_align
