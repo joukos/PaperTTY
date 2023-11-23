@@ -308,6 +308,11 @@ class IT8951(DisplayDriver):
         self.write_data_half_word(display_mode)
 
     def draw_multi(self, imageArray):
+
+        """This function performs multiple draws in a single panel refresh"""
+
+        #First, calculate the bounds of the panel area which is being refreshed.
+        #ie. a rectangle within which all of the images in imageArray would fit.
         smallest_x = -1
         biggest_x = -1
         smallest_y = -1
@@ -328,6 +333,7 @@ class IT8951(DisplayDriver):
                 biggest_y = bottom
         bbox = (smallest_x, smallest_y, biggest_x, biggest_y)
 
+        #Next, draw each image.
         for i, arrayItem in enumerate(imageArray):
             x = arrayItem["x"]
             y = arrayItem["y"]
@@ -341,6 +347,7 @@ class IT8951(DisplayDriver):
         width = image.size[0]
         height = image.size[1]
 
+        #If this is the first (or only) image to draw, prepare the display.
         if isFirst:
             self.wait_for_display_ready()
 
@@ -368,7 +375,9 @@ class IT8951(DisplayDriver):
             #Confusingly, 1bpp actually requires the use of the 8bpp flag
             bpp_mode = self.BPP_8
 
+            #If this is the first (or only) image to draw, write the registers.
             if isFirst:
+
                 #If the panel isn't already in 1bpp mode, write these specific commands to the
                 #register to put it into 1bpp mode.
                 #This is the important bit which actually puts it in 1bpp in spite of the 8bpp flag
@@ -390,7 +399,9 @@ class IT8951(DisplayDriver):
             bpp = 4
             bpp_mode = self.BPP_4
 
+            #If this is the first (or only) image to draw, write the registers.
             if isFirst:
+
                 #If the last write was in 1bpp mode, unset that register to take it out of 1bpp mode.
                 if self.in_bpp1_mode:
                     self.write_register(self.REG_UP1SR+2, self.read_register(self.REG_UP1SR+2) & ~(1<<2) )
@@ -418,7 +429,9 @@ class IT8951(DisplayDriver):
         self.write_data_bytes(packed_image)
         self.write_command(self.CMD_LOAD_IMAGE_END);
 
+        #If this is the last (or only) image to draw, refresh the panel.
         if isLast:
+
             if update_mode_override is not None:
                 update_mode = update_mode_override
             elif image.mode == "1":
@@ -431,7 +444,11 @@ class IT8951(DisplayDriver):
             else:
                 # Use a slower, flashy update mode for gray scale images.
                 update_mode = self.DISPLAY_UPDATE_MODE_GC16
-            # Blit the image to the display
+
+            # Blit the image to the display.
+            # If bbox has been passed in (eg. if performing multiple draws at once)
+            # then we should update that area.
+            # Otherwise, refresh the panel based on the image's bounds.
             if bbox:
                 (left, top, right, bottom) = bbox
                 self.display_area(left, top, right-left, bottom-top, update_mode)
