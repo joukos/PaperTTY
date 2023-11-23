@@ -65,7 +65,6 @@ class PaperTTY:
     encoding = None
     spacing = 0
     vcom = None
-    hspacing = 0
     cursor = None
     rows = None
     cols = None
@@ -79,8 +78,8 @@ class PaperTTY:
         self.driver = get_drivers()[driver]['class']()
         self.spacing = spacing
         self.fontsize = fontsize
-        self.partial = partial #must come before load_font is called
         self.font = self.load_font(font) if font else None
+        self.partial = partial
         self.white = self.driver.white
         self.black = self.driver.black
         self.encoding = encoding
@@ -220,27 +219,6 @@ class PaperTTY:
 
         if font:
             self.recalculate_font(font)
-
-            #TODO: only if monospaced
-
-            #If partial refresh is enabled, make sure that font_height and font_width are divisible by 4.
-            #This is to avoid two potentially problematic scenarios.
-            #The first is an image with an odd height being rotated, which can cause problems in the
-            #currently used version (7.1.2) of PIL.
-            #The second is an image with a dimension not visible by 4, which can cause problems with the
-            #IT8951 driver, likely due to that driver requiring 4bpp.
-            if self.is_truetype and self.partial:
-                offset = 4 - (self.font_width % 4)
-                if offset % 4 != 0:
-                    print("Setting horizontal spacing to: "+str(offset))
-                    self.hspacing = offset
-                    self.font_width += offset
-
-                offset = 4 - (self.font_height % 4)
-                if offset % 4 != 0:
-                    print("Increasing spacing from "+str(self.spacing)+" to "+str(self.spacing+offset))
-                    self.spacing += offset
-                    self.font_height += offset
 
         return font
 
@@ -1041,14 +1019,7 @@ class PaperTTY:
             newval = chunk["newval"]
             cursorIsOnThisLine = chunk["cursorIsOnThisLine"]
 
-            #If hspacing is zero, just draw the whole line of text in one go.
-            #If not, draw the characters one at a time, with that much spacing in between.
-            if self.hspacing == 0:
-                draw.text((x, y), newval, font=self.font, fill=fill, spacing=self.spacing)
-            else:
-                for character in newval:
-                    draw.text((x, y), character, font=self.font, fill=fill, spacing=self.spacing)
-                    x += self.font_width
+            draw.text((x, y), newval, font=self.font, fill=fill, spacing=self.spacing)
 
             #Draw the cursor, if it's on this line
             if cursorIsOnThisLine:
