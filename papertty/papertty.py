@@ -504,6 +504,11 @@ class PaperTTY:
         #Use the font height as the height for other measurements, such as row height
         height = self.font_height
 
+        #Figure out the width and height of the panel after rotation.
+        #These values are used when determining the maximum allowed size of a row of text,
+        #when figuring out coordinates, and so on.
+        driverHeight = self.driver.height if portrait else self.driver.width
+        driverWidth = self.driver.width if portrait else self.driver.height
         
         #First, run through each row and build a list of strings to potentially draw
         changedLines = self.partialdraw_get_changed_lines(cursor, oldcursor, oldlines, newlines)
@@ -528,12 +533,12 @@ class PaperTTY:
 
         #For each line in `changedLines`, figure out its coordinates and other information
         #needed for drawing.
-        linesToDraw = self.partialdraw_get_lines_to_draw(changedLines, height, flipy, portrait)
+        linesToDraw = self.partialdraw_get_lines_to_draw(changedLines, height, flipy, driverHeight)
         
 
         #Take those lines and turn them into actual images, performing all necessary
         #rotation, coordinate adjustments, etc.
-        imagesToDraw = self.partialdraw_get_images_to_draw(linesToDraw, cursor, oldcursor, height, fill, portrait, flipx, flipy)
+        imagesToDraw = self.partialdraw_get_images_to_draw(linesToDraw, cursor, oldcursor, height, fill, flipx, flipy, driverWidth)
 
 
         #If oldimage is defined, update it by drawing the new frames onto it.
@@ -543,7 +548,7 @@ class PaperTTY:
         #compatibility with other papertty functions and b) perform cropping for
         #1bpp alignment.
         if not oldimage:
-            oldimage = Image.new('1', (self.driver.width, self.driver.height) if portrait else (self.driver.height, self.driver.width), self.white)
+            oldimage = Image.new('1', (driverWidth, driverHeight), self.white)
         
 
         #Array of bounded images to pass through to draw_multi if the driver
@@ -571,12 +576,31 @@ class PaperTTY:
             else:
                 xdiv = 8
                 ydiv = 1
+
+            #If the screen is rotated, then switch the bounds around.
+            #This is because we crop BEFORE rotating, so doing it here
+            #with switched values saves us from needing to crop a second
+            #time.
+            if not portrait:
+                xdiv, ydiv = ydiv, xdiv
+
             bbox = self.band(diff_bbox, xdiv=xdiv, ydiv=ydiv)
 
+            croppedImage = oldimage.crop(bbox)
+            x, y = bbox[0], bbox[1]
+
+            #Rotate the image and coordinates
+            if not portrait:
+                croppedImage = croppedImage.rotate(90, expand=True)
+                x, y = y, driverWidth - x - croppedImage.height
+
+            #If multi_draw is supported, add the image to an array so they can
+            #all be sent through at once.
+            #Otherwise, just draw the image immediately.
             if self.driver.supports_multi_draw:
-                imageArray.append({"x":bbox[0], "y":bbox[1], "image":oldimage.crop(bbox)})
+                imageArray.append({"x":x, "y":y, "image":croppedImage})
             else:
-                self.driver.draw(bbox[0], bbox[1], oldimage.crop(bbox))
+                self.driver.draw(x, y, croppedImage)
 
 
         if self.driver.supports_multi_draw:
@@ -729,7 +753,7 @@ class PaperTTY:
                         changedLines[i]["drawThisLine"] = True
                         break
 
-    def partialdraw_get_lines_to_draw(self, changedLines, height, flipy, portrait):
+    def partialdraw_get_lines_to_draw(self, changedLines, height, flipy, driverHeight):
 
         """This function takes the result of partialdraw_get_changed_lines and
             figures out where and how to draw the line.
@@ -762,7 +786,7 @@ class PaperTTY:
                 #This is because we want the gap between the "last" row (which,
                 #when flipped, becomes the first row) to be at the bottom of the screen,
                 #not the top.
-                offset_y = (self.driver.height if portrait else self.driver.width) % self.font_height
+                offset_y = driverHeight % self.font_height
                 
                 #We want to count backwards from 1 row BEFORE self.rows, since that's
                 #the maximum index we would actually draw at when counting forwards.
@@ -857,7 +881,7 @@ class PaperTTY:
 
         return linesToDraw
 
-    def partialdraw_get_images_to_draw(self, linesToDraw, cursor, oldcursor, height, fill, portrait, flipx, flipy):
+    def partialdraw_get_images_to_draw(self, linesToDraw, cursor, oldcursor, height, fill, flipx, flipy, driverWidth):
 
         """This function takes the result of partialdraw_get_lines_to_draw and turns
             each line into an image. It takes care of rotation, adjusting the
@@ -904,9 +928,9 @@ class PaperTTY:
             #Draw the image
             image = self.partialdraw_build_image(rowWidth, rowHeight, chunks, height, fill, cursor, smallestStartIndex)
 
-            #Rotate and/or flip image, if needed
-            if not portrait:
-                image = image.rotate(90, expand=True)
+            #Flip the image, if needed.
+            #But do NOT rotate it here.
+            #Rotation is handled later in the process to simplify coordinate translation.
             if flipx:
                 image = image.transpose(Image.FLIP_LEFT_RIGHT)
             if flipy:
@@ -919,22 +943,19 @@ class PaperTTY:
             else:
                 chunk = chunks[0]
 
-            #Add this image to the list of images to draw
-            offset_x = 0 #self.driver.width % self.font_width
-            if portrait:
-                y = chunk["y"]
-                if flipx:
-                    x = self.driver.width - image.width + offset_x - smallest_x
-                else:
-                    x = smallest_x
-            else:
-                if flipx:
-                    y = self.driver.height - image.height + offset_x - smallest_x
-                    x = self.driver.width - chunk["y"] - image.width
-                else:
-                    x = chunk["y"]
-                    y = self.driver.height - image.height - smallest_x
+            offset_x = 0 #driverWidth % self.font_width
+            y = chunk["y"]
 
+            #smallest_x is the x coordinate of the start of the changed area.
+            #So set x to be smallest_x if flipx is turned off.
+            #If flipx is turned on, then calculate the x coordinate based on
+            #the panel width, image width, etc.
+            if flipx:
+                x = driverWidth - image.width + offset_x - smallest_x
+            else:
+                x = smallest_x
+
+            #Add this image to the list of images to draw
             imagesToDraw.append({"x":x, "y":y, "image":image})
 
         return imagesToDraw
