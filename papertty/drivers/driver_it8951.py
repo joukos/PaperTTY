@@ -313,9 +313,9 @@ class IT8951(DisplayDriver):
         smallest_y = -1
         biggest_y = -1
         for arrayItem in imageArray:
-            left = arrayItem[0]
-            top = arrayItem[1]
-            image = arrayItem[2]
+            left = arrayItem["x"]
+            top = arrayItem["y"]
+            image = arrayItem["image"]
             right = left + image.width
             bottom = top + image.height
             if left < smallest_x or smallest_x == -1:
@@ -329,9 +329,9 @@ class IT8951(DisplayDriver):
         bbox = (smallest_x, smallest_y, biggest_x, biggest_y)
 
         for i, arrayItem in enumerate(imageArray):
-            x = arrayItem[0]
-            y = arrayItem[1]
-            image = arrayItem[2]
+            x = arrayItem["x"]
+            y = arrayItem["y"]
+            image = arrayItem["image"]
             update_mode_override = None
             isFirst = i == 0
             isLast = i == len(imageArray) - 1

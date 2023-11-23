@@ -557,13 +557,13 @@ class PaperTTY:
         #Finally, either draw the image immediately, or put it in imageArray so it can be
         #drawn in bulk.
         for arr in imagesToDraw:
-            oldimage.paste(arr[2], (arr[0], arr[1])) #for the return data
+            oldimage.paste(arr["image"], (arr["x"], arr["y"])) #for the return data
 
             diff_bbox = ( \
-                arr[0], \
-                arr[1], \
-                arr[0] + arr[2].width, \
-                arr[1] + arr[2].height \
+                arr["x"], \
+                arr["y"], \
+                arr["x"] + arr["image"].width, \
+                arr["y"] + arr["image"].height \
             )
             if self.driver.supports_1bpp and self.driver.enable_1bpp:
                 xdiv = self.driver.align_1bpp_width
@@ -574,7 +574,7 @@ class PaperTTY:
             bbox = self.band(diff_bbox, xdiv=xdiv, ydiv=ydiv)
 
             if self.driver.supports_multi_draw:
-                imageArray.append([bbox[0], bbox[1], oldimage.crop(bbox)])
+                imageArray.append({"x":bbox[0], "y":bbox[1], "image":oldimage.crop(bbox)})
             else:
                 self.driver.draw(bbox[0], bbox[1], oldimage.crop(bbox))
 
@@ -629,7 +629,13 @@ class PaperTTY:
             #Draw this line if either the cursor has moved, or the text has changed
             drawThisLine = cursorMovedHorizontally or cursorIsOnThisLine != cursorWasOnThisLine or oldval != newval
 
-            lineToDraw = [drawThisLine, newval, cursorIsOnThisLine, oldval, cursorWasOnThisLine]
+            lineToDraw = {
+                "drawThisLine":drawThisLine,
+                "newval":newval,
+                "cursorIsOnThisLine":cursorIsOnThisLine,
+                "oldval":oldval,
+                "cursorWasOnThisLine":cursorWasOnThisLine
+            }
             changedLines.append(lineToDraw)
 
         return changedLines
@@ -648,7 +654,7 @@ class PaperTTY:
         
         for i, arr in enumerate(changedLines):
             
-            drawThisLine = arr[0]
+            drawThisLine = arr["drawThisLine"]
 
             #If this line is to be drawn, and so was the previous line, group them
             #together in the same block.
@@ -656,9 +662,9 @@ class PaperTTY:
             #new block instead.
             if drawThisLine:
                 if drawLastLine:
-                    blocks[-1][1] = i
+                    blocks[-1]["end"] = i
                 else:
-                    blocks.append([i, i])
+                    blocks.append({"start":i, "end":i})
 
             drawLastLine = drawThisLine
 
@@ -672,8 +678,8 @@ class PaperTTY:
 
         #If the number of blocks to draw is more than we want to redraw separately
         #(`maxRedraw`), then batch them together.
-        #We do this by setting `drawThisLine` (the first parameter of changedLines)
-        #to True for the lines in between separate blocks.
+        #We do this by setting `drawThisLine` to True for the lines in between separate
+        #blocks.
         #This causes the "block" to be made bigger artificially by drawing lines we
         #don't need to, which in turn leverages the "append" behavior in the drawing loop.
         #
@@ -702,25 +708,25 @@ class PaperTTY:
                 for i in range(len(blocks) - 1):
                     thisBlock = blocks[i]
                     nextBlock = blocks[i+1]
-                    thisBlockEnd = thisBlock[1]
-                    nextBlockStart = nextBlock[0]
+                    thisBlockEnd = thisBlock["end"]
+                    nextBlockStart = nextBlock["start"]
                     gap = nextBlockStart - thisBlockEnd
                     if smallestGap == -1 or gap < smallestGap:
                         smallestGap = gap
                         smallestGapIndex = i
                 blockToMerge = blocks.pop(smallestGapIndex+1)
-                blocks[smallestGapIndex][1] = blockToMerge[1]
+                blocks[smallestGapIndex]["end"] = blockToMerge["end"]
 
             #Next, iterate through all of the lines of text we were going to draw
             #(or not draw) and reassess whether to draw them or not based on whether
             #they're in one of the calculated text blocks.
-            #Setting changedLines[i][0] to True means that line of text will be
+            #Setting drawThisLine to True means that line of text will be
             #flagged for merging in the drawing loop elsewhere in the code.
 
             for i, arr in enumerate(changedLines):
                 for block in blocks:
-                    if i >= block[0] and i <= block[1]:
-                        changedLines[i][0] = True
+                    if i >= block["start"] and i <= block["end"]:
+                        changedLines[i]["drawThisLine"] = True
                         break
 
     def partialdraw_get_lines_to_draw(self, changedLines, height, flipy, portrait):
@@ -740,11 +746,11 @@ class PaperTTY:
         linesToDraw = []
 
         for i, arr in enumerate(changedLines):
-            drawThisLine = arr[0]
-            newval = arr[1]
-            cursorIsOnThisLine = arr[2]
-            oldval = arr[3]
-            cursorWasOnThisLine = arr[4]
+            drawThisLine = arr["drawThisLine"]
+            newval = arr["newval"]
+            cursorIsOnThisLine = arr["cursorIsOnThisLine"]
+            oldval = arr["oldval"]
+            cursorWasOnThisLine = arr["cursorWasOnThisLine"]
 
             #Calculate the y coordinate based on the row number and font height.
             #If flipy is set, count the rows backwards, since we want to draw from
@@ -825,7 +831,16 @@ class PaperTTY:
                 #minimize the number of SPI writes.
                 subsequentLines = []
 
-                lineToDraw = [x, y, newval, cursorIsOnThisLine, subsequentLines, firstChanged, lastChanged, cursorWasOnThisLine]
+                lineToDraw = {
+                    "x":x,
+                    "y":y,
+                    "newval":newval,
+                    "cursorIsOnThisLine":cursorIsOnThisLine,
+                    "subsequentLines":subsequentLines,
+                    "firstChanged":firstChanged,
+                    "lastChanged":lastChanged,
+                    "cursorWasOnThisLine":cursorWasOnThisLine
+                }
 
                 #If append is true, that means this line and the previous line were both altered.
                 #So we're going to take the current line and append it to the previous line and
@@ -833,7 +848,7 @@ class PaperTTY:
                 if append:
 
                     lastIndex = len(linesToDraw) - 1
-                    linesToDraw[lastIndex][4].append(lineToDraw)
+                    linesToDraw[lastIndex]["subsequentLines"].append(lineToDraw)
 
                 else:
 
@@ -854,9 +869,9 @@ class PaperTTY:
         for i, arr in enumerate(linesToDraw):
 
             #Grab the current line and subsequent lines, then put them all in a list together
-            chunks = [[arr[0], arr[1], arr[2], arr[3], arr[5], arr[6], arr[7]]]
-            for line in arr[4]:
-                chunks.append([line[0], line[1], line[2], line[3], line[5], line[6], line[7]])
+            chunks = [arr]
+            for line in arr["subsequentLines"]:
+                chunks.append(line)
 
             #Run the chunks of text through the partialdraw_get_indexes_from_chunks function.
             #This will tell us the first and last character indexes to draw.
@@ -870,7 +885,7 @@ class PaperTTY:
 
             #For each text chunk, reduce its length based on the chars we want to draw.
             for chunk in chunks:
-                chunk[2] = chunk[2][smallestStartIndex:biggestEndIndex+1]
+                chunk["newval"] = chunk["newval"][smallestStartIndex:biggestEndIndex+1]
 
             #Calculate the image width based on how many chars have changed.
             #eg. If the text changed from "test" to "testing", then 3 chars have changed.
@@ -907,7 +922,7 @@ class PaperTTY:
             #Add this image to the list of images to draw
             offset_x = 0 #self.driver.width % self.font_width
             if portrait:
-                y = chunk[1]
+                y = chunk["y"]
                 if flipx:
                     x = self.driver.width - image.width + offset_x - smallest_x
                 else:
@@ -915,19 +930,19 @@ class PaperTTY:
             else:
                 if flipx:
                     y = self.driver.height - image.height + offset_x - smallest_x
-                    x = self.driver.width - chunk[1] - image.width
+                    x = self.driver.width - chunk["y"] - image.width
                 else:
-                    x = chunk[1]
+                    x = chunk["y"]
                     y = self.driver.height - image.height - smallest_x
 
-            imagesToDraw.append([x, y, image])
+            imagesToDraw.append({"x":x, "y":y, "image":image})
 
         return imagesToDraw
 
     def partialdraw_get_indexes_from_chunks(self, chunks, cursor, oldcursor):
 
         """Calculates the starting and ending character indexes of a text block.
-            eg. If chunk[0] only chanes from characters 0-4, but chunk[1] changed
+            eg. If chunk[0] only changes from characters 0-4, but chunk[1] changed
             from characters 3-6, then we would want to know the first changed
             character (0) and last changed character (6)."""
         
@@ -935,8 +950,8 @@ class PaperTTY:
         biggestEndIndex = 0
 
         for chunk in chunks:
-            startIndex = chunk[4]
-            endIndex = chunk[5]
+            startIndex = chunk["firstChanged"]
+            endIndex = chunk["lastChanged"]
 
             #Don't bother checking lines where nothing has changed.
             #This could be because the line is part of a block update.
@@ -950,8 +965,8 @@ class PaperTTY:
 
         #If the cursor has moved, make sure it is drawn
         for chunk in chunks:
-            cursorIsOnThisLine = chunk[3]
-            cursorWasOnThisLine = chunk[6]
+            cursorIsOnThisLine = chunk["cursorIsOnThisLine"]
+            cursorWasOnThisLine = chunk["cursorWasOnThisLine"]
 
             #If the cursor both was and still is on this line, it may have moved horizontally.
             #Check if x coordinates match.
@@ -1002,8 +1017,8 @@ class PaperTTY:
         for j, chunk in enumerate(chunks):
             x = 0
             y = j * height
-            newval = chunk[2]
-            cursorIsOnThisLine = chunk[3]
+            newval = chunk["newval"]
+            cursorIsOnThisLine = chunk["cursorIsOnThisLine"]
 
             #If hspacing is zero, just draw the whole line of text in one go.
             #If not, draw the characters one at a time, with that much spacing in between.
