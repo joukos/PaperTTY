@@ -17,15 +17,9 @@
 
 from PIL import Image
 
+from papertty.drivers.drivers_base import GPIO
 from papertty.drivers.drivers_consts import EPD4in2const
 from papertty.drivers.drivers_partial import WavesharePartial
-
-try:
-    import RPi.GPIO as GPIO
-except ImportError:
-    pass
-except RuntimeError as e:
-    print(str(e))
 
 # The driver works as follows:
 #

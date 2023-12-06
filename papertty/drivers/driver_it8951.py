@@ -4,10 +4,10 @@ import struct
 import time
 
 from papertty.drivers.drivers_base import DisplayDriver
+from papertty.drivers.drivers_base import GPIO
 
 try:
     import spidev
-    import RPi.GPIO as GPIO
 except ImportError:
     pass
 except RuntimeError as e:
