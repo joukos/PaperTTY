@@ -197,9 +197,10 @@ class IT8951(DisplayDriver):
 
         mhz = kwargs.get('mhz', None)
         if mhz:
-            self.SPI.max_speed_hz = mhz * 1000000
+            self.SPI.max_speed_hz = int(mhz * 1000000)
         else:
             self.SPI.max_speed_hz = 2000000
+        print("SPI Speed = %.02f Mhz" % (self.SPI.max_speed_hz / 1000.0 / 1000.0))
         
         self.SPI.mode = 0b00
 
