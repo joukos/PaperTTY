@@ -355,17 +355,13 @@ class EPD3in7(WaveshareFull):
         self.wait_until_idle()
         
         self.send_command(0x01) # setting gaet number
-        self.send_data(0xDF)
-        self.send_data(0x01)
-        self.send_data(0x00)
+        self.send_data_multi([0xDF,0x01,0x00])
 
         self.send_command(0x03) # set gate voltage
         self.send_data(0x00)
 
         self.send_command(0x04) # set source voltage
-        self.send_data(0x41)
-        self.send_data(0xA8)
-        self.send_data(0x32)
+        self.send_data_multi([0x41,0xA8,0x32])
 
         self.send_command(0x11) # set data entry sequence
         self.send_data(0x03)
@@ -374,11 +370,7 @@ class EPD3in7(WaveshareFull):
         self.send_data(0x00)
         
         self.send_command(0x0C) # set booster strength
-        self.send_data(0xAE)
-        self.send_data(0xC7)
-        self.send_data(0xC3)
-        self.send_data(0xC0)
-        self.send_data(0xC0)
+        self.send_data_multi([0xAE,0xC7,0xC3,0xC0,0xC0])
 
         self.send_command(0x18) # set internal sensor on
         self.send_data(0x80)
@@ -387,28 +379,15 @@ class EPD3in7(WaveshareFull):
         self.send_data(0x44)
         
         self.send_command(0x37) # set display option, these setting turn on previous function
-        self.send_data(0x00)     #can switch 1 gray or 4 gray
-        self.send_data(0xFF)
-        self.send_data(0xFF)
-        self.send_data(0xFF)
-        self.send_data(0xFF)  
-        self.send_data(0x4F)
-        self.send_data(0xFF)
-        self.send_data(0xFF)
-        self.send_data(0xFF)
-        self.send_data(0xFF)
+        #can switch 1 gray or 4 gray
+        #4gray not currently implemented
+        self.send_data_multi([0x00,0xFF,0xFF,0xFF,0xFF,0x4F,0xFF,0xFF,0xFF,0xFF])
 
         self.send_command(0x44) # setting X direction start/end position of RAM
-        self.send_data(0x00)
-        self.send_data(0x00)
-        self.send_data(0x17)
-        self.send_data(0x01)
+        self.send_data_multi([0x00,0x00,0x17,0x01])
 
         self.send_command(0x45) # setting Y direction start/end position of RAM
-        self.send_data(0x00)
-        self.send_data(0x00)
-        self.send_data(0xDF)
-        self.send_data(0x01)
+        self.send_data_multi([0x00,0x00,0xDF,0x01])
 
         self.send_command(0x22) # Display Update Control 2
         self.send_data(0xCF)
@@ -422,11 +401,9 @@ class EPD3in7(WaveshareFull):
     def display_frame(self, frame_buffer, *args):
         if frame_buffer:
             self.send_command(0x4E)
-            self.send_data(0x00)
-            self.send_data(0x00)
+            self.send_data_multi([0x00,0x00])
             self.send_command(0x4F)
-            self.send_data(0x00)
-            self.send_data(0x00)
+            self.send_data_multi([0x00,0x00])
 
             self.send_command(0x24)
             self.send_data_multi(frame_buffer)
