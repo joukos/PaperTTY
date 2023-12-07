@@ -32,8 +32,9 @@ except RuntimeError as e:
 # Optional dependency
 try:
     from gpiozero import OutputDevice, InputDevice
+    print("gpiozero found - using that instead of RPi.GPIO")
 except ImportError:
-    print("gpiozero not found")
+    print("gpiozero not found - defaulting to RPi.GPIO")
     pass
 
 class GPIO:
@@ -62,8 +63,6 @@ class GPIO:
             else:
                 GPIO.pins[str(pin)] = InputDevice(pin)
         except Exception as e:
-            print(e)
-            print("gpiozero not supported")
             GPIO.pins[str(pin)] = False
             rpiGPIO.setup(pin, ioType)
 
