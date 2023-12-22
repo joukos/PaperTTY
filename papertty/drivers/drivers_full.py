@@ -355,17 +355,13 @@ class EPD3in7(WaveshareFull):
         self.wait_until_idle()
         
         self.send_command(0x01) # setting gaet number
-        self.send_data(0xDF)
-        self.send_data(0x01)
-        self.send_data(0x00)
+        self.send_data_multi([0xDF,0x01,0x00])
 
         self.send_command(0x03) # set gate voltage
         self.send_data(0x00)
 
         self.send_command(0x04) # set source voltage
-        self.send_data(0x41)
-        self.send_data(0xA8)
-        self.send_data(0x32)
+        self.send_data_multi([0x41,0xA8,0x32])
 
         self.send_command(0x11) # set data entry sequence
         self.send_data(0x03)
@@ -374,11 +370,7 @@ class EPD3in7(WaveshareFull):
         self.send_data(0x00)
         
         self.send_command(0x0C) # set booster strength
-        self.send_data(0xAE)
-        self.send_data(0xC7)
-        self.send_data(0xC3)
-        self.send_data(0xC0)
-        self.send_data(0xC0)
+        self.send_data_multi([0xAE,0xC7,0xC3,0xC0,0xC0])
 
         self.send_command(0x18) # set internal sensor on
         self.send_data(0x80)
@@ -387,28 +379,15 @@ class EPD3in7(WaveshareFull):
         self.send_data(0x44)
         
         self.send_command(0x37) # set display option, these setting turn on previous function
-        self.send_data(0x00)     #can switch 1 gray or 4 gray
-        self.send_data(0xFF)
-        self.send_data(0xFF)
-        self.send_data(0xFF)
-        self.send_data(0xFF)  
-        self.send_data(0x4F)
-        self.send_data(0xFF)
-        self.send_data(0xFF)
-        self.send_data(0xFF)
-        self.send_data(0xFF)
+        #can switch 1 gray or 4 gray
+        #4gray not currently implemented
+        self.send_data_multi([0x00,0xFF,0xFF,0xFF,0xFF,0x4F,0xFF,0xFF,0xFF,0xFF])
 
         self.send_command(0x44) # setting X direction start/end position of RAM
-        self.send_data(0x00)
-        self.send_data(0x00)
-        self.send_data(0x17)
-        self.send_data(0x01)
+        self.send_data_multi([0x00,0x00,0x17,0x01])
 
         self.send_command(0x45) # setting Y direction start/end position of RAM
-        self.send_data(0x00)
-        self.send_data(0x00)
-        self.send_data(0xDF)
-        self.send_data(0x01)
+        self.send_data_multi([0x00,0x00,0xDF,0x01])
 
         self.send_command(0x22) # Display Update Control 2
         self.send_data(0xCF)
@@ -417,25 +396,110 @@ class EPD3in7(WaveshareFull):
 
     def load_lut(self, lut):
         self.send_command(0x32)
-        for i in range(0, 105):
-            self.send_data(lut[i])
+        self.send_data_multi(lut)
 
     def display_frame(self, frame_buffer, *args):
         if frame_buffer:
             self.send_command(0x4E)
-            self.send_data(0x00)
-            self.send_data(0x00)
+            self.send_data_multi([0x00,0x00])
             self.send_command(0x4F)
-            self.send_data(0x00)
-            self.send_data(0x00)
+            self.send_data_multi([0x00,0x00])
 
             self.send_command(0x24)
-            for j in range(0, self.height):
-                for i in range(0, int(self.width / 8)):
-                    self.send_data(frame_buffer[i + j * int(self.width / 8)])   
+            self.send_data_multi(frame_buffer)
 
             self.send_command(0x20)
-            self.wait_until_idle()   
+            self.wait_until_idle()
+
+    def draw(self, x, y, image):
+        """Display an image - this module does not support partial refresh: x, y are ignored"""
+        frame_buffer = self.pack_image(image)
+        self.display_frame(frame_buffer, x, y)
+
+    def display_partial(self, frame_buffer, x_start, y_start, x_end, y_end):
+        """Partial refresh has been added, but it is not turned on.
+        This is because, while it does work, there are weird visual artifacts.
+
+        Following the waveshare docs and experimenting with various settings has
+        done nothing.
+        The only thing which gets rid of the artifacts is forcing a clear,
+        or sending command 0x20 twice, both of which are undesirable.
+
+        I suspect that this is a bug with the 3in7 device, considering that partial
+        refresh is absent from Waveshare's python examples, and other projects
+        supporting this panel have omitted the partial refresh function.
+        """
+        
+        width = ((x_end-x_start)/8) if ((x_end-x_start)%8 == 0) else ((x_end-x_start)/8+1)
+        height = y_end - y_start
+
+        x_end -= 1
+        y_end -= 1
+
+        self.send_command(0x44)
+        self.send_data(x_start % 256)
+        self.send_data(x_start // 256)
+        self.send_data(x_end % 256)
+        self.send_data(x_end // 256)
+        self.send_command(0x45)
+        self.send_data(y_start % 256)
+        self.send_data(y_start // 256)
+        self.send_data(y_end % 256)
+        self.send_data(y_end // 256)
+
+        self.send_command(0x4E) # SET_RAM_X_ADDRESS_COUNTER
+        self.send_data(x_start % 256)
+
+        self.send_command(0x4F) # SET_RAM_Y_ADDRESS_COUNTER
+        self.send_data(y_start % 256)
+        self.send_data(y_start // 256)
+        
+        self.send_command(0x24)
+        self.send_data_multi(frame_buffer)
+
+        self.load_lut(self.lut_1Gray_A2)
+        self.send_command(0x20)
+        self.wait_until_idle()
+
+    def pack_image(self, image):
+        """Packs a PIL image for transfer over SPI to the driver board."""
+
+        #Load image into a frame buffer
+        frame_buffer = list(image.getdata())
+
+        #Step is the number of input bytes (bytes from the image) we
+        #can pack into a single byte of the output bytes (packed buffer).
+        #This is currently hard-coded to 8, because only 1bpp mode is supported.
+        step = 8
+
+        #Set the size of packed_buffer to be the length of the
+        #frame buffer (total input bytes) divided by a step
+        #(input bytes needed per packed byte).
+        packed_buffer = [0x00] * (len(frame_buffer) // step)
+
+        #Step through the frame buffer and pack its bytes
+        #into packed_buffer.
+        for i in range(0, len(frame_buffer), step):
+            self.pack_1bpp(packed_buffer, i // step, frame_buffer[i:i+step])
+
+        return packed_buffer
+
+    def pack_1bpp(self, packed_buffer, i, eightBytes):
+        """Pack an image in 1bpp format.
+
+        This only works for black and white images.
+        This code would look nicer with a loop, but using bitwise operators
+        like this is significantly faster. So the ugly code stays ;)
+        """
+        packed_buffer[i] = \
+            (128 if eightBytes[0] else 0) | \
+            (64 if eightBytes[1] else 0) | \
+            (32 if eightBytes[2] else 0) | \
+            (16 if eightBytes[3] else 0) | \
+            (8 if eightBytes[4] else 0) | \
+            (4 if eightBytes[5] else 0) | \
+            (2 if eightBytes[6] else 0) | \
+            (1 if eightBytes[7] else 0)
 
     def sleep(self):
         self.send_command(0X50) # DEEP_SLEEP_MODE
