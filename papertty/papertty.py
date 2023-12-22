@@ -102,10 +102,10 @@ class PaperTTY:
 
     def set_tty_size(self, tty, rows, cols):
         """Set a TTY (/dev/tty*) to a certain size. Must be a real TTY that support ioctls."""
-        self.rows = rows
-        self.cols = cols
+        self.rows = int(rows)
+        self.cols = int(cols)
         with open(tty, 'w') as tty:
-            size = struct.pack("HHHH", int(rows), int(cols), 0, 0)
+            size = struct.pack("HHHH", self.rows, self.cols, 0, 0)
             try:
                 fcntl.ioctl(tty.fileno(), termios.TIOCSWINSZ, size)
             except OSError:
@@ -251,7 +251,7 @@ class PaperTTY:
 
     def fit(self, portrait=False):
         """Return the maximum columns and rows we can display with this font"""
-        width = self.font.getsize('M')[0]
+        width = self.font_width
         height = self.font_height
         # hacky, subtract just a bit to avoid going over the border with small fonts
         pw = self.driver.width - 3
@@ -399,9 +399,19 @@ class PaperTTY:
                 previous_vnc_image = new_vnc_image.copy()
                 time.sleep(float(sleep))
 
-    def showtext(self, text, fill, cursor=None, portrait=False, flipx=False, flipy=False, oldimage=None):
+    def showtext(self, text, fill, cursor=None, portrait=False, flipx=False, flipy=False, oldimage=None, oldtext=None, oldcursor=None):
         """Draw a string on the screen"""
         if self.ready():
+            
+            #If partial updates are supported, run partialdraw_showtext() instead
+            #as it should be more efficient.
+            if self.driver.supports_partial and self.partial:
+                
+                if oldtext is None:
+                    oldtext = ""
+
+                return self.partialdraw_showtext(text=text, fill=fill, cursor=cursor, portrait=portrait, flipx=flipx, flipy=flipy, oldimage=oldimage, oldtext=oldtext, oldcursor=oldcursor)
+
             # set order of h, w according to orientation
             image = Image.new('1', (self.driver.width, self.driver.height) if portrait else (
                 self.driver.height, self.driver.width),
@@ -451,7 +461,583 @@ class PaperTTY:
             return image
         else:
             self.error("Display not ready")
+
+
+
+    def partialdraw_showtext(self, text, fill, cursor, portrait, flipx, flipy, oldimage, oldtext, oldcursor):
+
+        """Draw a string on the screen one line at a time.
+           This function serves as an alternative to showtext() and aims to be more efficient
+           by comparing string values instead of diffing images.
+           It is especially fast for any drivers with self.supports_multi_draw = True.
+           (supports_multi_draw is currently only supported by the IT8951 driver)
+        """
+
+        #First, grab oldtext (the text from the previous render) and text (the text from
+        #the current render), then split them up based on a newline delimiter.
+        #This is so we can compare the previous state of the text to the current state
+        #of the text line by line and only redraw the lines which have actually changed.
+        oldlines = oldtext.split('\n')
+        newlines = text.split('\n')
+
+
+        #Use the font height as the height for other measurements, such as row height
+        height = self.font_height
+
+        #Figure out the width and height of the panel after rotation.
+        #These values are used when determining the maximum allowed size of a row of text,
+        #when figuring out coordinates, and so on.
+        driverHeight = self.driver.height if portrait else self.driver.width
+        driverWidth = self.driver.width if portrait else self.driver.height
+        
+        #First, run through each row and build a list of strings to potentially draw
+        changedLines = self.partialdraw_get_changed_lines(cursor, oldcursor, oldlines, newlines)
+
+
+        #If this panel doesn't support multiple draws in a single refresh, then we
+        #are probably better off merging the individual lines of text into a single
+        #block and drawing that instead.
+        #This is because of the overhead involved with each individual write to the
+        #GPIO pins, so it can be faster to do one big write instead of two small writes.
+        #
+        #There's no strict rule of which is faster.
+        #It depends on the speed of the machine (eg. rpi zero vs rpi 4b) and the speed
+        #of the panel refresh.
+        #
+        #The value of maxRedraw should probably always be either 1 or 2.
+        if not self.driver.supports_multi_draw:
+            maxRedraw = 1
+            blocks = self.partialdraw_get_text_blocks(changedLines)
+            self.partialdraw_merge_text_blocks(blocks, maxRedraw, changedLines)
+        
+
+        #For each line in `changedLines`, figure out its coordinates and other information
+        #needed for drawing.
+        linesToDraw = self.partialdraw_get_lines_to_draw(changedLines, height, flipy, driverHeight)
+        
+
+        #Take those lines and turn them into actual images, performing all necessary
+        #rotation, coordinate adjustments, etc.
+        imagesToDraw = self.partialdraw_get_images_to_draw(linesToDraw, cursor, oldcursor, height, fill, flipx, flipy, driverWidth)
+
+
+        #If oldimage is defined, update it by drawing the new frames onto it.
+        #If not, create a new full-screen image.
+        #In either case, don't actually draw the fullscreen image.
+        #We're building it to a) return a full-screen image as the return value for
+        #compatibility with other papertty functions and b) perform cropping for
+        #1bpp alignment.
+        if not oldimage:
+            oldimage = Image.new('1', (driverWidth, driverHeight), self.white)
+        
+
+        #Array of bounded images to pass through to draw_multi if the driver
+        #supports it via driver.supports_multi_draw
+        imageArray = []
+
+
+        #For each image we want to draw, paste the image onto the fullscreen image (oldimage).
+        #Then build a bbox and band the image coordinates we required by the board
+        #and bpp setting.
+        #Finally, either draw the image immediately, or put it in imageArray so it can be
+        #drawn in bulk.
+        for arr in imagesToDraw:
+            oldimage.paste(arr["image"], (arr["x"], arr["y"])) #for the return data
+
+            diff_bbox = ( \
+                arr["x"], \
+                arr["y"], \
+                arr["x"] + arr["image"].width, \
+                arr["y"] + arr["image"].height \
+            )
+            if self.driver.supports_1bpp and self.driver.enable_1bpp:
+                xdiv = self.driver.align_1bpp_width
+                ydiv = self.driver.align_1bpp_height
+            else:
+                xdiv = 8
+                ydiv = 1
+
+            #If the screen is rotated, then switch the bounds around.
+            #This is because we crop BEFORE rotating, so doing it here
+            #with switched values saves us from needing to crop a second
+            #time.
+            if not portrait:
+                xdiv, ydiv = ydiv, xdiv
+
+            bbox = self.band(diff_bbox, xdiv=xdiv, ydiv=ydiv)
+
+            croppedImage = oldimage.crop(bbox)
+            x, y = bbox[0], bbox[1]
+
+            #Rotate the image and coordinates
+            if not portrait:
+                croppedImage = croppedImage.rotate(90, expand=True)
+                x, y = y, driverWidth - x - croppedImage.height
+
+            #If multi_draw is supported, add the image to an array so they can
+            #all be sent through at once.
+            #Otherwise, just draw the image immediately.
+            if self.driver.supports_multi_draw:
+                imageArray.append({"x":x, "y":y, "image":croppedImage})
+            else:
+                self.driver.draw(x, y, croppedImage)
+
+
+        if self.driver.supports_multi_draw:
+            self.driver.draw_multi(imageArray)
+
+
+        return oldimage
     
+    def partialdraw_get_changed_lines(self, cursor, oldcursor, oldlines, newlines):
+
+        """This function compares two strings arrays, oldlines and newlines, and
+            figures out which lines of text in those arrays are different.
+            It also takes cursor position into consideration when figuring out if
+            the text has "changed" or not."""
+
+        #List of lines of text which have changed
+        changedLines = []
+
+        for i in range(self.rows):
+            
+            newval = newlines[i] if i < len(newlines) else ''
+            oldval = oldlines[i] if i < len(oldlines) else ''
+
+            #Use these variables to check if the cursor has moved
+            cursorIsOnThisLine = False
+            cursorWasOnThisLine = False
+            cursorMovedHorizontally = False
+
+            if cursor and self.cursor:
+                cur_y = cursor[1]
+                if cur_y == i:
+                    cursorIsOnThisLine = True
+
+            if oldcursor:
+                cur_y = oldcursor[1]
+                if cur_y == i:
+                    cursorWasOnThisLine = True
+
+            #If the cursor was on this line last render, and it's still on this line
+            #this render, then we need to check the x axis (cursor[0]) and the text
+            #to judge whether the cursor needs drawing or not.
+            #If it doesn't need drawing, set both variables to false.
+            if cursorIsOnThisLine and cursorWasOnThisLine:
+                if oldcursor[0] != cursor[0]:
+                    cursorMovedHorizontally = True
+                elif oldval == newval:
+                    cursorIsOnThisLine = False
+                    cursorWasOnThisLine = False
+
+            #Draw this line if either the cursor has moved, or the text has changed
+            drawThisLine = cursorMovedHorizontally or cursorIsOnThisLine != cursorWasOnThisLine or oldval != newval
+
+            lineToDraw = {
+                "drawThisLine":drawThisLine,
+                "newval":newval,
+                "cursorIsOnThisLine":cursorIsOnThisLine,
+                "oldval":oldval,
+                "cursorWasOnThisLine":cursorWasOnThisLine
+            }
+            changedLines.append(lineToDraw)
+
+        return changedLines
+
+    def partialdraw_get_text_blocks(self, changedLines):
+
+        """This function takes the result of partialdraw_get_changed_lines and
+            groups consecutive lines together in order to create blocks of text."""
+
+        #Array of grouped text blocks
+        blocks = []
+
+        #Used in the loop to keep track of whether the previous line was flagged for
+        #drawing or not
+        drawLastLine = False
+        
+        for i, arr in enumerate(changedLines):
+            
+            drawThisLine = arr["drawThisLine"]
+
+            #If this line is to be drawn, and so was the previous line, group them
+            #together in the same block.
+            #If this line is to be drawn, but the previous one wasn't, then start a
+            #new block instead.
+            if drawThisLine:
+                if drawLastLine:
+                    blocks[-1]["end"] = i
+                else:
+                    blocks.append({"start":i, "end":i})
+
+            drawLastLine = drawThisLine
+
+        return blocks
+
+    def partialdraw_merge_text_blocks(self, blocks, maxRedraw, changedLines):
+
+        """This function takes the result of partialdraw_get_text_blocks
+            and merges the text blocks together until the total number of block
+            does not exceed `maxRedraw`."""
+
+        #If the number of blocks to draw is more than we want to redraw separately
+        #(`maxRedraw`), then batch them together.
+        #We do this by setting `drawThisLine` to True for the lines in between separate
+        #blocks.
+        #This causes the "block" to be made bigger artificially by drawing lines we
+        #don't need to, which in turn leverages the "append" behavior in the drawing loop.
+        #
+        #This sounds counter-productive, but it actually speeds things up in cases where
+        #we can't perform multiple independent writes to the board in a single refresh.
+        #This is because each individual write to SPI incurs overhead, and each individual
+        #write also triggers a redraw by the e-ink panel which has its own delay.
+        #So if we're looking to do multiple small writes, sometimes it's preferable to do one
+        #bigger write instead.
+
+        if len(blocks) > maxRedraw:
+
+            #First, iterate through each block and figure out how big the gap is between
+            #that block and the next block.
+            #Then when we've found the smallest gap, merge those two blocks together.
+            #Repeat this process until the number of blocks does not exceed `maxRedraw`.
+            #The smallest gap is used as the criteria for merging because a "gap" between
+            #blocks is a section of lines which otherwise don't need to be drawn.
+            #Any of those lines we do draw is extra overhead.
+            #So to minimize that extra overhead, we make a point of looking for the
+            #smallest gaps.
+
+            while len(blocks) > maxRedraw:
+                smallestGap = -1
+                smallestGapIndex = -1
+                for i in range(len(blocks) - 1):
+                    thisBlock = blocks[i]
+                    nextBlock = blocks[i+1]
+                    thisBlockEnd = thisBlock["end"]
+                    nextBlockStart = nextBlock["start"]
+                    gap = nextBlockStart - thisBlockEnd
+                    if smallestGap == -1 or gap < smallestGap:
+                        smallestGap = gap
+                        smallestGapIndex = i
+                blockToMerge = blocks.pop(smallestGapIndex+1)
+                blocks[smallestGapIndex]["end"] = blockToMerge["end"]
+
+            #Next, iterate through all of the lines of text we were going to draw
+            #(or not draw) and reassess whether to draw them or not based on whether
+            #they're in one of the calculated text blocks.
+            #Setting drawThisLine to True means that line of text will be
+            #flagged for merging in the drawing loop elsewhere in the code.
+
+            for i, arr in enumerate(changedLines):
+                for block in blocks:
+                    if i >= block["start"] and i <= block["end"]:
+                        changedLines[i]["drawThisLine"] = True
+                        break
+
+    def partialdraw_get_lines_to_draw(self, changedLines, height, flipy, driverHeight):
+
+        """This function takes the result of partialdraw_get_changed_lines and
+            figures out where and how to draw the line.
+            This includes flagging the line of text as one which should be merged,
+            figuring out which characters in the text line have actually changed,
+            and other information useful for the text drawing loop."""
+        
+        #`append` is a flag to indicate that the current line should be merged with the
+        #preceding line instead of being drawn separately.
+        #This is part of a performance optimization; it's less expensive to draw a double-line
+        #height image than it is to draw two single-line height images.
+        append = False
+
+        linesToDraw = []
+
+        for i, arr in enumerate(changedLines):
+            drawThisLine = arr["drawThisLine"]
+            newval = arr["newval"]
+            cursorIsOnThisLine = arr["cursorIsOnThisLine"]
+            oldval = arr["oldval"]
+            cursorWasOnThisLine = arr["cursorWasOnThisLine"]
+
+            #Calculate the y coordinate based on the row number and font height.
+            #If flipy is set, count the rows backwards, since we want to draw from
+            #the "end" (which flipy moves to the start of the screen) instead.
+            if flipy:
+
+                #Calculate the gap between the last row and the edge of the screen,
+                #then add it to y.
+                #This is because we want the gap between the "last" row (which,
+                #when flipped, becomes the first row) to be at the bottom of the screen,
+                #not the top.
+                offset_y = driverHeight % self.font_height
+                
+                #We want to count backwards from 1 row BEFORE self.rows, since that's
+                #the maximum index we would actually draw at when counting forwards.
+                maxRowIndex = self.rows - 1
+
+                y = (maxRowIndex - i) * height
+                y += offset_y
+            else:
+                y = i * height
+
+            if not drawThisLine:
+
+                #If the cursor hasn't moved to/from this line and the text hasn't changed,
+                #then don't add this line to the `linesToDraw` array.
+                #Just set append to false, since we aren't drawing this line and thus can't
+                #append to it
+                append = False
+
+            else:
+                firstChanged = -1
+                lastChanged = 0
+                oldlen = len(oldval)
+                newlen = len(newval)
+                smallerLen = min(oldlen, newlen)
+
+                #Iterate through the old text value and the new text value char by char
+                #in order to find the first non-matching character.
+                #Or, if either string is empty, set firstChanged to 0.
+                if oldlen == 0 or newlen == 0:
+                    firstChanged = 0
+                else:
+                    for j in range(smallerLen):
+                        oldChar = oldval[j]
+                        newChar = newval[j]
+                        if oldChar != newChar:
+                            firstChanged = j
+                            break
+
+                #firstChanged might not be set if one line completely encapsulates the other.
+                #eg. if the line changed from "test" to "testing" then they are identical
+                #until the last char of the old string, so firstChanged would never be set.
+                #In that case, set firstChanged to be the final character of whichever line
+                #is shorter.
+                if firstChanged == -1:
+                    firstChanged = min(oldlen, newlen) - 1
+
+                #Next, try to find the LAST non-matching character.
+                #If the line length has changed, then the last char won't match, so just
+                #set it to that. Otherwise, iterate char by char again.
+                if newlen != oldlen:
+                    lastChanged = max(oldlen, newlen) - 1
+                else:
+                    for j in range(newlen):
+                        oldChar = oldval[j]
+                        newChar = newval[j]
+                        if oldChar != newChar:
+                            lastChanged = j
+
+                #Set the x coordinate to start at `firstChanged` since we won't draw
+                #anything before that.
+                x = firstChanged * self.font_width
+
+                #`subsequentLines` is a list of lines which come after the current line,
+                #but should be drawn in the same image as this line.
+                #This is so we can draw consecutive altered lines into a single image and
+                #minimize the number of SPI writes.
+                subsequentLines = []
+
+                lineToDraw = {
+                    "x":x,
+                    "y":y,
+                    "newval":newval,
+                    "cursorIsOnThisLine":cursorIsOnThisLine,
+                    "subsequentLines":subsequentLines,
+                    "firstChanged":firstChanged,
+                    "lastChanged":lastChanged,
+                    "cursorWasOnThisLine":cursorWasOnThisLine
+                }
+
+                #If append is true, that means this line and the previous line were both altered.
+                #So we're going to take the current line and append it to the previous line and
+                #draw them together.
+                if append:
+
+                    lastIndex = len(linesToDraw) - 1
+                    linesToDraw[lastIndex]["subsequentLines"].append(lineToDraw)
+
+                else:
+
+                    linesToDraw.append(lineToDraw)
+                    append = True
+
+        return linesToDraw
+
+    def partialdraw_get_images_to_draw(self, linesToDraw, cursor, oldcursor, height, fill, flipx, flipy, driverWidth):
+
+        """This function takes the result of partialdraw_get_lines_to_draw and turns
+            each line into an image. It takes care of rotation, adjusting the
+            coordinates, and so on."""
+
+        #List of images (lines of text) to draw
+        imagesToDraw = []
+        
+        for i, arr in enumerate(linesToDraw):
+
+            #Grab the current line and subsequent lines, then put them all in a list together
+            chunks = [arr]
+            for line in arr["subsequentLines"]:
+                chunks.append(line)
+
+            #Run the chunks of text through the partialdraw_get_indexes_from_chunks function.
+            #This will tell us the first and last character indexes to draw.
+            #TODO: if the font isn't monospace, this should just cover the entire line
+            (smallestStartIndex, biggestEndIndex) = self.partialdraw_get_indexes_from_chunks(chunks, cursor, oldcursor)
+
+            #Calculate the starting x coordinate (smallest_x) and the ending x coordinate
+            #(biggest_x) of the block.
+            smallest_x = smallestStartIndex * self.font_width
+            biggest_x = biggestEndIndex * self.font_width
+
+            #For each text chunk, reduce its length based on the chars we want to draw.
+            for chunk in chunks:
+                chunk["newval"] = chunk["newval"][smallestStartIndex:biggestEndIndex+1]
+
+            #Calculate the image width based on how many chars have changed.
+            #eg. If the text changed from "test" to "testing", then 3 chars have changed.
+            #So the image width will be 3 x font_width.
+            diffIndex = biggestEndIndex - smallestStartIndex
+            diffRows = diffIndex + 1
+            rowWidth = diffRows * self.font_width
+
+            #Line height doesn't change based on orientation, since image.rotate will
+            #resize as needed.
+            lineHeight = height
+
+            #Calculate the row height by multiplying the line height by the number of chunks
+            rowHeight = lineHeight * len(chunks)
+
+            #Draw the image
+            image = self.partialdraw_build_image(rowWidth, rowHeight, chunks, height, fill, cursor, smallestStartIndex)
+
+            #Flip the image, if needed.
+            #But do NOT rotate it here.
+            #Rotation is handled later in the process to simplify coordinate translation.
+            if flipx:
+                image = image.transpose(Image.FLIP_LEFT_RIGHT)
+            if flipy:
+                image = image.transpose(Image.FLIP_TOP_BOTTOM)
+            
+            #Figure out where to draw the image based on either the first or last
+            #chunk's coordinates
+            if flipy:
+                chunk = chunks[-1]
+            else:
+                chunk = chunks[0]
+
+            offset_x = 0 #driverWidth % self.font_width
+            y = chunk["y"]
+
+            #smallest_x is the x coordinate of the start of the changed area.
+            #So set x to be smallest_x if flipx is turned off.
+            #If flipx is turned on, then calculate the x coordinate based on
+            #the panel width, image width, etc.
+            if flipx:
+                x = driverWidth - image.width + offset_x - smallest_x
+            else:
+                x = smallest_x
+
+            #Add this image to the list of images to draw
+            imagesToDraw.append({"x":x, "y":y, "image":image})
+
+        return imagesToDraw
+
+    def partialdraw_get_indexes_from_chunks(self, chunks, cursor, oldcursor):
+
+        """Calculates the starting and ending character indexes of a text block.
+            eg. If chunk[0] only changes from characters 0-4, but chunk[1] changed
+            from characters 3-6, then we would want to know the first changed
+            character (0) and last changed character (6)."""
+        
+        smallestStartIndex = -1
+        biggestEndIndex = 0
+
+        for chunk in chunks:
+            startIndex = chunk["firstChanged"]
+            endIndex = chunk["lastChanged"]
+
+            #Don't bother checking lines where nothing has changed.
+            #This could be because the line is part of a block update.
+            #So it hasn't changed, but needs to be redrawn anyway.
+            if startIndex == endIndex:
+                pass
+            if startIndex < smallestStartIndex or smallestStartIndex == -1:
+                smallestStartIndex = startIndex
+            if endIndex > biggestEndIndex:
+                biggestEndIndex = endIndex
+
+        #If the cursor has moved, make sure it is drawn
+        for chunk in chunks:
+            cursorIsOnThisLine = chunk["cursorIsOnThisLine"]
+            cursorWasOnThisLine = chunk["cursorWasOnThisLine"]
+
+            #If the cursor both was and still is on this line, it may have moved horizontally.
+            #Check if x coordinates match.
+            #If they don't match, then the cursor has moved and needs to be redrawn.
+            #In which case we should adjust the smallest/biggest index of the text
+            #redraw to include the cursor.
+            if cursorIsOnThisLine and cursorWasOnThisLine:
+                cur_x = cursor[0]
+                old_x = oldcursor[0]
+                if cur_x != old_x:
+                    smaller_x = min(cur_x, old_x)
+                    bigger_x = max(cur_x, old_x)
+                    if smallestStartIndex == -1 or smaller_x < smallestStartIndex:
+                        smallestStartIndex = smaller_x
+                    if bigger_x > biggestEndIndex:
+                        biggestEndIndex = bigger_x
+
+            #If the cursor is now on a different line than it was before, and it is/was on this
+            #particular line, then we need to make sure the draw includes the index where the
+            #cursor is/was.
+            if cursorIsOnThisLine != cursorWasOnThisLine:
+                if cursorIsOnThisLine:
+                    cur_x = cursor[0]
+                else:
+                    cur_x = oldcursor[0]
+                if smallestStartIndex == -1 or cur_x < smallestStartIndex:
+                    smallestStartIndex = cur_x
+                if cur_x > biggestEndIndex:
+                    biggestEndIndex = cur_x
+
+        return (smallestStartIndex, biggestEndIndex)
+
+    def partialdraw_build_image(self, rowWidth, rowHeight, chunks, height, fill, cursor, smallestStartIndex):
+
+        """Builds an image based on the chunks of text and size parameters passed in.
+            Also draws the cursor, if needed."""
+
+
+        #First, create an image with the expected dimensions.
+        image = Image.new('1', (rowWidth, rowHeight), self.white)
+
+
+        #Then get the ImageDraw object so we can actually draw on the image.
+        draw = ImageDraw.Draw(image)
+
+
+        #For each chunk, draw the text and possibly the cursor
+        for j, chunk in enumerate(chunks):
+            x = 0
+            y = j * height
+            newval = chunk["newval"]
+            cursorIsOnThisLine = chunk["cursorIsOnThisLine"]
+
+            draw.text((x, y), newval, font=self.font, fill=fill, spacing=self.spacing)
+
+            #Draw the cursor, if it's on this line
+            if cursorIsOnThisLine:
+
+                #Adjust cursor's coordinate so they're relative to the text chunk's position
+                cursor_x = cursor[0] - smallestStartIndex
+                cursor_y = j
+                
+                newcursor = (cursor_x, cursor_y, cursor[2])
+                if self.cursor == 'block':
+                    image = self.draw_block_cursor(newcursor, image)
+                else:
+                    self.draw_line_cursor(newcursor, draw)
+
+        return image
+
     def clear(self):
         """Clears the display; set all black, then all white, or use INIT mode, if driver supports it."""
         if self.ready():
@@ -898,6 +1484,8 @@ def terminal(settings, vcsa, font, fontsize, noclear, nocursor, cursor, sleep, t
                         # show new content
                         oldimage = ptty.showtext(buff, fill=ptty.black, cursor=cursor if not nocursor else None,
                                                 oldimage=oldimage,
+                                                oldtext=oldbuff,
+                                                oldcursor=oldcursor,
                                                 **textargs)
                         oldbuff = buff
                         oldcursor = cursor

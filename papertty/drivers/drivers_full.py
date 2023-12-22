@@ -52,6 +52,7 @@ class WaveshareFull(WaveshareEPD):
         self.enable_1bpp = False
         self.align_1bpp_width = False
         self.align_1bpp_height = False
+        self.supports_multi_draw = False
 
     def wait_until_idle(self):
         while self.digital_read(self.BUSY_PIN) == 0:  # 0: busy, 1: idle

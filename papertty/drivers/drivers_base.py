@@ -102,6 +102,7 @@ class DisplayDriver(ABC):
         self.enable_1bpp = None
         self.align_1bpp_width = None
         self.align_1bpp_height = None
+        self.supports_multi_draw = None
 
     @abstractmethod
     def init(self, **kwargs):
