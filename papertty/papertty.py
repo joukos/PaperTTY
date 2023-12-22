@@ -72,8 +72,9 @@ class PaperTTY:
     fontfile = None
     enable_a2 = True
     enable_1bpp = True
+    mhz = None
 
-    def __init__(self, driver, font=defaultfont, fontsize=defaultsize, partial=None, encoding='utf-8', spacing=0, cursor=None, vcom=None, enable_a2=True, enable_1bpp=True):
+    def __init__(self, driver, font=defaultfont, fontsize=defaultsize, partial=None, encoding='utf-8', spacing=0, cursor=None, vcom=None, enable_a2=True, enable_1bpp=True, mhz=None):
         """Create a PaperTTY with the chosen driver and settings"""
         self.driver = get_drivers()[driver]['class']()
         self.spacing = spacing
@@ -87,6 +88,7 @@ class PaperTTY:
         self.vcom = vcom
         self.enable_a2 = enable_a2
         self.enable_1bpp = enable_1bpp
+        self.mhz = mhz
 
     def ready(self):
         """Check that the driver is loaded and initialized"""
@@ -244,7 +246,7 @@ class PaperTTY:
 
     def init_display(self):
         """Initialize the display - call the driver's init method"""
-        self.driver.init(partial=self.partial, vcom=self.vcom, enable_a2=self.enable_a2, enable_1bpp=self.enable_1bpp)
+        self.driver.init(partial=self.partial, vcom=self.vcom, enable_a2=self.enable_a2, enable_1bpp=self.enable_1bpp, mhz=self.mhz)
         self.initialized = True
 
     def fit(self, portrait=False):
@@ -699,9 +701,10 @@ def fb(settings, fb_num, rotate, invert, sleep, fullevery):
 @click.option('--vcom', default=None, help='VCOM as positive value x 1000. eg. 1460 = -1.46V')
 @click.option('--disable_a2', is_flag=True, default=False, help='Disable fast A2 panel refresh for black and white images')
 @click.option('--disable_1bpp', is_flag=True, default=False, help='Disable fast 1bpp mode')
+@click.option('--mhz', default=None, help='Set SPI speed in MHz')
 @click.pass_obj
 def terminal(settings, vcsa, font, fontsize, noclear, nocursor, cursor, sleep, ttyrows, ttycols, portrait, flipx, flipy,
-             spacing, apply_scrub, autofit, attributes, interactive, vcom, disable_a2, disable_1bpp):
+             spacing, apply_scrub, autofit, attributes, interactive, vcom, disable_a2, disable_1bpp, mhz):
     """Display virtual console on an e-Paper display, exit with Ctrl-C."""
     settings.args['font'] = font
     settings.args['fontsize'] = fontsize
@@ -719,11 +722,21 @@ def terminal(settings, vcsa, font, fontsize, noclear, nocursor, cursor, sleep, t
         vcom = int(vcom)
         if vcom <= 0:
             print("VCOM should be a positive number. It will be converted automatically. eg. For a value of -1.46V, set VCOM to 1460")
-            sys.exit(1)
         settings.args['vcom'] = vcom
     
     settings.args['enable_a2'] = not disable_a2
     settings.args['enable_1bpp'] = not disable_1bpp
+    
+    if mhz:
+        mhz = float(mhz)
+        if mhz < 0:
+            print("SPI speed must be greater than 0")
+            sys.exit(1)
+        elif mhz > 1000:
+            print("SPI speed is measured in MHz. It should be much lower than the value entered. Did you enter the speed in Hz by mistake?")
+            sys.exit(1)
+        else:
+            settings.args['mhz'] = mhz
 
     if cursor == 'default' or cursor == 'legacy':
         settings.args['cursor'] = 'default'
@@ -850,10 +863,10 @@ def terminal(settings, vcsa, font, fontsize, noclear, nocursor, cursor, sleep, t
                 elif ch == 'r':
                     if oldimage:
                         ptty.driver.reset()
-                        ptty.driver.init(partial=False, vcom=self.vcom, enable_a2=self.enable_a2, enable_1bpp=self.enable_1bpp)
+                        ptty.driver.init(partial=False, vcom=self.vcom, enable_a2=self.enable_a2, enable_1bpp=self.enable_1bpp, mhz=self.mhz)
                         ptty.driver.draw(0, 0, oldimage)
                         ptty.driver.reset()
-                        ptty.driver.init(partial=ptty.partial, vcom=self.vcom, enable_a2=self.enable_a2, enable_1bpp=self.enable_1bpp)
+                        ptty.driver.init(partial=ptty.partial, vcom=self.vcom, enable_a2=self.enable_a2, enable_1bpp=self.enable_1bpp, mhz=self.mhz)
 
             # if user or SIGUSR1 toggled the scrub flag, scrub display and start with a fresh image
             if flags['scrub_requested']:

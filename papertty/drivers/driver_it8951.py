@@ -194,7 +194,14 @@ class IT8951(DisplayDriver):
         GPIO.setup(self.CS_PIN, GPIO.OUT)
         GPIO.setup(self.BUSY_PIN, GPIO.IN)
         self.SPI = spidev.SpiDev(0, 0)
-        self.SPI.max_speed_hz = 2000000
+
+        mhz = kwargs.get('mhz', None)
+        if mhz:
+            self.SPI.max_speed_hz = int(mhz * 1000000)
+        else:
+            self.SPI.max_speed_hz = 2000000
+        print("SPI Speed = %.02f Mhz" % (self.SPI.max_speed_hz / 1000.0 / 1000.0))
+        
         self.SPI.mode = 0b00
 
         # It is unclear why this is necessary but it appears to be. The sample
