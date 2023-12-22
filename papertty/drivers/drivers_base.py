@@ -23,12 +23,64 @@ import time
 # using them
 try:
     import spidev
-    import RPi.GPIO as GPIO
+    import RPi.GPIO as rpiGPIO
 except ImportError:
     pass
 except RuntimeError as e:
     print(str(e))
 
+# Optional dependency
+try:
+    from gpiozero import OutputDevice, InputDevice
+    print("gpiozero found - using that instead of RPi.GPIO")
+except ImportError:
+    print("gpiozero not found - defaulting to RPi.GPIO")
+    pass
+
+class GPIO:
+
+    OUT = rpiGPIO.OUT
+    IN = rpiGPIO.IN
+    BCM = rpiGPIO.BCM
+    LOW = rpiGPIO.LOW
+    HIGH = rpiGPIO.HIGH
+
+    pins = {}
+
+    @staticmethod
+    def setmode(value):
+        rpiGPIO.setmode(value)
+
+    @staticmethod
+    def setwarnings(value):
+        rpiGPIO.setwarnings(value)
+
+    @staticmethod
+    def setup(pin, ioType):
+        try:
+            if ioType == GPIO.OUT:
+                GPIO.pins[str(pin)] = OutputDevice(pin)
+            else:
+                GPIO.pins[str(pin)] = InputDevice(pin)
+        except Exception as e:
+            GPIO.pins[str(pin)] = False
+            rpiGPIO.setup(pin, ioType)
+
+    @staticmethod
+    def input(pinNo):
+        pin = GPIO.pins[str(pinNo)]
+        if pin == False:
+            return rpiGPIO.input(pinNo)
+        else:
+            return pin.value
+
+    @staticmethod
+    def output(pinNo, value):
+        pin = GPIO.pins[str(pinNo)]
+        if pin == False:
+            rpiGPIO.output(pinNo, value)
+        else:
+            pin.on() if value == 1 else pin.off()
 
 class DisplayDriver(ABC):
     """Abstract base class for a display driver - be it Waveshare e-Paper, PaPiRus, OLED..."""
