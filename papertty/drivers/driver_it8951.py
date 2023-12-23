@@ -3,26 +3,16 @@ import array
 import struct
 import time
 
-from papertty.drivers.drivers_base import DisplayDriver
+from papertty.drivers.drivers_base import WaveshareEPD
 from papertty.drivers.drivers_base import GPIO
-
-try:
-    import spidev
-except ImportError:
-    pass
-except RuntimeError as e:
-    print(str(e))
+from papertty.drivers.drivers_base import SpiDev
 
 
-class IT8951(DisplayDriver):
+class IT8951(WaveshareEPD):
     """A generic driver for displays that use a IT8951 controller board.
 
     This class will automatically infer the width and height by querying the
     controller."""
-
-    RST_PIN = 17
-    CS_PIN = 8
-    BUSY_PIN = 24
 
     VCOM = 2000
 
@@ -80,8 +70,7 @@ class IT8951(DisplayDriver):
     Front_Gray_Val = 0x00
 
     def __init__(self):
-        super().__init__()
-        self.name = "IT8951"
+        super().__init__("IT8951", None, None)
         self.supports_partial = True
         self.supports_1bpp = True
         self.enable_1bpp = True
@@ -189,12 +178,8 @@ class IT8951(DisplayDriver):
         return result
 
     def init(self, **kwargs):
-        GPIO.setmode(GPIO.BCM)
-        GPIO.setwarnings(False)
-        GPIO.setup(self.RST_PIN, GPIO.OUT)
-        GPIO.setup(self.CS_PIN, GPIO.OUT)
-        GPIO.setup(self.BUSY_PIN, GPIO.IN)
-        self.SPI = spidev.SpiDev(0, 0)
+        if self.epd_init(includeDcPin=False) != 0:
+            return -1
 
         mhz = kwargs.get('mhz', None)
         if mhz:
@@ -203,14 +188,12 @@ class IT8951(DisplayDriver):
             self.SPI.max_speed_hz = 2000000
         print("SPI Speed = %.02f Mhz" % (self.SPI.max_speed_hz / 1000.0 / 1000.0))
         
-        self.SPI.mode = 0b00
-
         # It is unclear why this is necessary but it appears to be. The sample
         # code from WaveShare [1] manually controls the CS bin and has its state
         # span multiple SPI operations.
         #
         # [1] https://github.com/waveshare/IT8951
-        self.SPI.no_cs = True
+        self.SPI.setNoCs(True)
 
         GPIO.output(self.CS_PIN, GPIO.HIGH)
 
