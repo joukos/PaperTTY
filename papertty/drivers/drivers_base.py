@@ -31,32 +31,91 @@ except RuntimeError as e:
 
 # Optional dependency
 try:
-    from gpiozero import OutputDevice, InputDevice
+    from gpiozero import OutputDevice, InputDevice, Device, SPIDevice
     print("gpiozero found - using that instead of RPi.GPIO")
 except ImportError:
     print("gpiozero not found - defaulting to RPi.GPIO")
     pass
 
+class SpiDev:
+
+    """This is a mock SpiDev class which abstracts the actual SPI device.
+    This is so we can use a single class to interface with multiple
+    different backends.
+    """
+
+    gpiozero = False
+    spi = False
+
+    def __init__(self):
+        try:
+            factory = Device._default_pin_factory()
+            self.spi = SPIDevice(pin_factory=factory)
+            self.gpiozero = True
+        except Exception as e:
+            print("Failed to init gpiozero spi device")
+            self.spi = spidev.SpiDev(0, 0)
+
+    def writebytes(self, data):
+        if self.gpiozero:
+            self.spi._spi.write(data)
+        else:
+            self.spi.writebytes(data)
+
+    def readbytes(self, n):
+        if self.gpiozero:
+            return self.spi._spi.read(n)
+        else:
+            return self.spi.readbytes(n)
+
+    def setSpeed(self, hz):
+        if not self.gpiozero:
+            self.spi.max_speed_hz = hz
+
+    def setMode(self, mode):
+        if not self.gpiozero:
+            self.spi.mode = mode
+
+    def setNoCs(self, value):
+        if not self.gpiozero:
+            self.spi.no_cs = value
+
 class GPIO:
 
-    OUT = rpiGPIO.OUT
-    IN = rpiGPIO.IN
-    BCM = rpiGPIO.BCM
-    LOW = rpiGPIO.LOW
-    HIGH = rpiGPIO.HIGH
+    """These constant values are used in place of the RPi.GPIO constants.
+    This is so this class can be used on platforms other than the Raspberry Pi.
+    The actual values from RPi.GPIO are then substituted below.
+    """
+    OUT = "OUT"
+    IN = "IN"
+    BCM = "BCM"
+    LOW = 0
+    HIGH = 1
 
     pins = {}
 
     @staticmethod
     def setmode(value):
-        rpiGPIO.setmode(value)
+        try:
+            if value == GPIO.BCM:
+                rpiGPIO.setmode(rpiGPIO.BCM)
+            else:
+                rpiGPIO.setmode(value)
+        except Exception as e:
+            #Not using RPi.GPIO - ignore the exception
+            pass
 
     @staticmethod
     def setwarnings(value):
-        rpiGPIO.setwarnings(value)
+        try:
+            rpiGPIO.setwarnings(value)
+        except Exception as e:
+            #Not using RPi.GPIO - ignore the exception
+            pass
 
     @staticmethod
     def setup(pin, ioType):
+
         try:
             if ioType == GPIO.OUT:
                 GPIO.pins[str(pin)] = OutputDevice(pin)
@@ -64,7 +123,10 @@ class GPIO:
                 GPIO.pins[str(pin)] = InputDevice(pin)
         except Exception as e:
             GPIO.pins[str(pin)] = False
-            rpiGPIO.setup(pin, ioType)
+            if ioType == GPIO.OUT:
+                rpiGPIO.setup(pin, rpiGPIO.OUT)
+            else:
+                rpiGPIO.setup(pin, rpiGPIO.IN)
 
     @staticmethod
     def input(pinNo):
@@ -233,16 +295,21 @@ class WaveshareEPD(DisplayDriver):
     def spi_transfer(self, data):
         self.SPI.writebytes(data)
 
-    def epd_init(self):
+    def epd_init(self, includeDcPin=True):
+
+        #SpiDev init must come first, otherwise CS_PIN read conflicts
+        #will sometimes occur during startup.
+        self.SPI = SpiDev()
+        self.SPI.setSpeed(2000000)
+        self.SPI.setMode(0b00)
+
         GPIO.setmode(GPIO.BCM)
         GPIO.setwarnings(False)
         GPIO.setup(self.RST_PIN, GPIO.OUT)
-        GPIO.setup(self.DC_PIN, GPIO.OUT)
+        if includeDcPin:
+            GPIO.setup(self.DC_PIN, GPIO.OUT)
         GPIO.setup(self.CS_PIN, GPIO.OUT)
         GPIO.setup(self.BUSY_PIN, GPIO.IN)
-        self.SPI = spidev.SpiDev(0, 0)
-        self.SPI.max_speed_hz = 2000000
-        self.SPI.mode = 0b00
         return 0
 
     # Basic functionality
