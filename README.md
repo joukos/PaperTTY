@@ -388,6 +388,8 @@ Option | Description | Default
 `--spacing` | Set line spacing | `0` 
 `--rows` | Set TTY rows (`--cols` required too) | *no default*
 `--cols` | Set TTY columns (`--rows` required too) | *no default*
+`--flipx` | Mirror X axis (experimental / buggy) | disabled
+`--flipy` | Mirror Y axis (experimental / buggy) | disabled
 
 
 ```sh
