@@ -386,6 +386,8 @@ Option | Description | Default
 `--portrait` | Enable portrait mode | disabled
 `--nofold` | Disable folding (ie. don't wrap to width) | disabled
 `--spacing` | Set line spacing | `0` 
+`--rows` | Set TTY rows (`--cols` required too) | *no default*
+`--cols` | Set TTY columns (`--rows` required too) | *no default*
 
 
 ```sh
