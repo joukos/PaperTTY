@@ -63,7 +63,7 @@ class WavesharePartial(WaveshareEPD):
         self.colors = 2
         self.lut = None
 
-    def init(self, partial=True):
+    def init(self, partial=True, **kwargs):
         self.partial_refresh = partial
         if self.epd_init() != 0:
             return -1
