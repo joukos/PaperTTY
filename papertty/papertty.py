@@ -1185,8 +1185,12 @@ def scrub(settings, size):
 @click.option('--portrait', default=False, is_flag=True, help='Use portrait orientation', show_default=True)
 @click.option('--nofold', default=False, is_flag=True, help="Don't fold the input", show_default=True)
 @click.option('--spacing', default='0', help='Line spacing for the text, "auto" to automatically determine a good value', show_default=True)
+@click.option('--rows', 'ttyrows', default=None, help='Set TTY rows (--cols required too)')
+@click.option('--cols', 'ttycols', default=None, help='Set TTY columns (--rows required too)')
+@click.option('--flipx', default=False, is_flag=True, help='Flip X axis (EXPERIMENTAL/BROKEN)', show_default=False)
+@click.option('--flipy', default=False, is_flag=True, help='Flip Y axis (EXPERIMENTAL/BROKEN)', show_default=False)
 @click.pass_obj
-def stdin(settings, font, fontsize, width, portrait, nofold, spacing):
+def stdin(settings, font, fontsize, width, portrait, nofold, spacing, ttyrows, ttycols, flipx, flipy):
     """Display standard input and leave it on screen"""
     settings.args['font'] = font
     settings.args['fontsize'] = fontsize
@@ -1200,7 +1204,12 @@ def stdin(settings, font, fontsize, width, portrait, nofold, spacing):
             font_width = ptty.font.getsize('M')[0]
             max_width = int((ptty.driver.width - 8) / font_width) if portrait else int(ptty.driver.height / font_width)
             text = ptty.fold(text, width=max_width)
-    ptty.showtext(text, fill=ptty.driver.black, portrait=portrait)
+    if ttyrows:
+        ptty.rows = int(ttyrows)
+    if ttycols:
+        ptty.cols = int(ttycols)
+    textargs = {'portrait': portrait, 'flipx': flipx, 'flipy': flipy}
+    ptty.showtext(text, fill=ptty.driver.black, **textargs)
 
 
 @click.command()
