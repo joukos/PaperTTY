@@ -14,6 +14,7 @@
 #     You should have received a copy of the GNU General Public License
 #     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 from papertty.drivers.drivers_base import WaveshareEPD
+from papertty.drivers.drivers_base import GPIO
 
 
 class WavesharePartial(WaveshareEPD):
@@ -594,3 +595,296 @@ class EPD2in13d(WavesharePartial):
             self.display_partial(self.get_frame_buffer(image), x, y, x + image.width, x + image.height)
         else:
             self.display_full(self.get_frame_buffer(image))
+
+class EPD2in13v4(WavesharePartial):
+
+    # Adapted from
+    # https://github.com/waveshareteam/e-Paper/blob/master/RaspberryPi_JetsonNano/python/lib/waveshare_epd/epd2in13_V4.py
+
+    def __init__(self):
+        # the actual pixel width is 122, but 128 is the 'logical' width
+        super().__init__(name='2.13" BW V4', width=128, height=250)
+        self.cached_buffer = None
+        self.supports_partial = True
+        
+    def reset(self):
+        self.digital_write(self.RST_PIN, GPIO.HIGH)
+        self.delay_ms(20)
+        self.digital_write(self.RST_PIN, GPIO.LOW)
+        self.delay_ms(2)
+        self.digital_write(self.RST_PIN, GPIO.HIGH)
+        self.delay_ms(20)
+
+    def send_command(self, command):
+        self.digital_write(self.CS_PIN, GPIO.LOW)
+        super().send_command(command)
+        self.digital_write(self.CS_PIN, GPIO.HIGH)
+
+    def send_data(self, data):
+        self.digital_write(self.CS_PIN, GPIO.LOW)
+        super().send_data(data)
+        self.digital_write(self.CS_PIN, GPIO.HIGH)
+
+    def send_data_multi(self, data):
+        self.digital_write(self.CS_PIN, GPIO.LOW)
+        super().send_data_multi(data)
+        self.digital_write(self.CS_PIN, GPIO.HIGH)
+    
+    def wait_until_idle(self):
+        while self.digital_read(self.BUSY_PIN) == 1:  # 0: idle, 1: busy
+            self.delay_ms(10)
+
+    def turn_on_display(self):
+        self.send_command(self.DISPLAY_UPDATE_CONTROL_2)
+        self.send_data(0xf7)
+        self.send_command(self.MASTER_ACTIVATION)
+        self.wait_until_idle()
+
+    def turn_on_display_fast(self):
+        self.send_command(self.DISPLAY_UPDATE_CONTROL_2)
+        self.send_data(0xC7)
+        self.send_command(self.MASTER_ACTIVATION)
+        self.wait_until_idle()
+    
+    def turn_on_display_part(self):
+        self.send_command(self.DISPLAY_UPDATE_CONTROL_2)
+        self.send_data(0xff)
+        self.send_command(self.MASTER_ACTIVATION)
+        self.wait_until_idle()
+
+    def set_memory_area(self, x_start, y_start, x_end, y_end):
+        self.send_command(self.SET_RAM_X_ADDRESS_START_END_POSITION)
+        # x point must be the multiple of 8 or the last 3 bits will be ignored
+        self.send_data_multi([
+            (x_start>>3) & 0xFF,
+            (x_end>>3) & 0xFF
+        ])
+        
+        self.send_command(self.SET_RAM_Y_ADDRESS_START_END_POSITION)
+        self.send_data_multi([
+            y_start & 0xFF,
+            (y_start >> 8) & 0xFF,
+            y_end & 0xFF,
+            (y_end >> 8) & 0xFF
+        ])
+
+    def set_memory_pointer(self, x, y):
+        self.send_command(self.SET_RAM_X_ADDRESS_COUNTER)
+
+        # x point must be the multiple of 8 or the last 3 bits will be ignored
+        self.send_data(x & 0xFF)
+        
+        self.send_command(self.SET_RAM_Y_ADDRESS_COUNTER)
+        self.send_data_multi([
+            y & 0xFF,
+            (y >> 8) & 0xFF
+        ])
+    
+    def init(self, partial=True, **kwargs):
+        
+        self.partial_refresh = partial
+
+        if self.epd_init() != 0:
+            return -1
+        
+        self.reset()
+        
+        self.wait_until_idle()
+        self.send_command(self.SW_RESET)
+        self.wait_until_idle() 
+
+        self.send_command(self.DRIVER_OUTPUT_CONTROL)
+        self.send_data_multi([0xf9,0x00,0x00])
+    
+        self.send_command(self.DATA_ENTRY_MODE_SETTING)
+        self.send_data(0x03)
+
+        self.set_memory_area(0, 0, self.width-1, self.height-1)
+        self.set_memory_pointer(0, 0)
+        
+        self.send_command(0x3c)
+        self.send_data(0x05)
+
+        self.send_command(self.DISPLAY_UPDATE_CONTROL_1)
+        self.send_data_multi([0x00,0x80])
+    
+        self.send_command(0x18)
+        self.send_data(0x80)
+        
+        self.wait_until_idle()
+        
+        return 0
+
+    def init_fast(self, partial=True, **kwargs):
+        
+        self.partial_refresh = partial
+
+        if self.epd_init() != 0:
+            return -1
+        
+        self.reset()
+
+        self.send_command(self.SW_RESET)
+        self.wait_until_idle() 
+
+        self.send_command(0x18) # Read built-in temperature sensor
+        # The below is send_command instead of send_data in the waveshare
+        # examples, but I think that was a typo.
+        self.send_data(0x80)
+
+        self.send_command(self.DATA_ENTRY_MODE_SETTING)
+        self.send_data(0x03)
+
+        self.set_memory_area(0, 0, self.width-1, self.height-1)
+        self.set_memory_pointer(0, 0)
+        
+        self.send_command(0x22) # Load temperature value
+        self.send_data(0xB1)  
+        self.send_command(0x20)
+        self.wait_until_idle()
+
+        self.send_command(0x1A) # Write to temperature register
+        self.send_data_multi([0x64,0x00])
+                        
+        self.send_command(0x22) # Load temperature value
+        self.send_data(0x91)
+        self.send_command(0x20)
+        self.wait_until_idle()
+        
+        return 0
+
+    def display_full(self, frame_buffer):
+        self.send_command(self.WRITE_RAM)
+        self.send_data_multi(frame_buffer)
+        self.turn_on_display()
+
+    def display_fast(self, frame_buffer):
+        self.send_command(self.WRITE_RAM)
+        self.send_data_multi(frame_buffer) 
+        self.turn_on_display_fast()
+
+    def display_partial(self, frame_buffer, x_start, y_start, x_end, y_end):
+        self.digital_write(self.RST_PIN, GPIO.LOW)
+        self.delay_ms(1)
+        self.digital_write(self.RST_PIN, GPIO.HIGH)
+
+        self.send_command(0x3C) # BorderWavefrom
+        self.send_data(0x80)
+
+        self.send_command(self.DRIVER_OUTPUT_CONTROL) # Driver output control      
+        self.send_data_multi([0xF9,0x00,0x00])
+
+        self.send_command(0x11) # data entry mode
+        self.send_data(0x03)
+
+        # Currently, `draw` always sets the start values to 0, and the
+        # end values to the panel's full size.
+        # This matches the waveshare docs/examples, but I suspect that
+        # it's wrong.
+        # After all, if it's always full-screen, how is the panel supposed
+        # to know which part of the display has changed for partial refresh?
+        #
+        # So what's currently in place works and matches the docs, and
+        # attempts to do it differently all failed.
+        # But I'm guessing there's a better way to do this.
+        # So if you want to make this panel's partial refresh faster, I'm
+        # thinking this might be part of the equation.
+        self.set_memory_area(x_start, y_start, x_end - 1, y_end - 1)
+        self.set_memory_pointer(x_start, y_start)
+        
+        self.send_command(self.WRITE_RAM)
+        self.send_data_multi(frame_buffer)
+
+        self.turn_on_display_part()
+
+    def displayPartBaseImage(self, frame_buffer):
+
+        # Write the "base" image to the panel, to be used for partial
+        # refreshes.
+        # This panel's partial refresh seems to work by writing a base
+        # image, then updating it each time you draw.
+
+        self.send_command(self.WRITE_RAM)
+        self.send_data_multi(frame_buffer)
+        self.send_command(0x26)
+        self.send_data_multi(frame_buffer)
+        self.turn_on_display()
+    
+    def clear(self):
+        self.send_command(self.WRITE_RAM)
+        self.send_data_multi([0xFF] * int(self.height * self.width//8))
+        self.turn_on_display()
+
+    def get_frame_buffer(self, image):
+        # Convert the image to a byte array.
+        # This function assumes the image is black and white.
+        # ie. Image mode '1'
+        # If you try to use it with a grayscale image, it may not work.
+        return bytearray(image.tobytes('raw'))
+
+    def draw(self, x, y, image):
+        """Replace a particular area on the display with an image"""
+
+        # Partial refresh works a bit differently for this panel.
+        # In spite of being a partial refresh, the image still needs
+        # to be a full-screen image, and we still need to send all of
+        # the bytes across to the panel.
+        # So in terms of data transmission, it's no faster than a full refresh.
+        #
+        # However, the refresh itself is much faster, and it relies on
+        # the data written to 0x26 via displayPartBaseImage in order to
+        # work properly.
+        #
+        # I'm sure there's some way to improve this, but after much
+        # experimenting this is the best I've got right now.
+
+
+        # First off, check if we have already written an image before.
+        # If not, build a buffer (self.cached_buffer) in memory.
+        # We do this for 2 reasons.
+        #
+        # First, because this panel requires a full-screen image each time.
+        # PaperTTY will send images which aren't the exact dimensions
+        # of this screen, even if partial is turned off, due to banding.
+        # So building a full-screen image here for the initial buffer works
+        # around that, and also means the code works with partial refreshes.
+        #
+        # Second, for speed.
+        # By reusing the buffer from the previous frame we can just overwrite
+        # the parts which have changed.
+        # eg. If the buffer is 128x250, and we get a new draw for an image which
+        # is 64x64, then we can reuse most of the already processed image and only
+        # replace that small bit which changed.
+        if self.cached_buffer is None:
+            self.cached_buffer = [0xFF] * int(self.height * self.width//8)
+
+            # If partial refresh is enabled, write the initial image to the
+            # appropriate register.
+            # This is optional for full refreshes, but it is required for
+            # partial refresh.
+            if self.partial_refresh:
+                self.displayPartBaseImage(self.cached_buffer)
+
+        # Now build the new buffer.
+        # We do this by converting the image to a byte array, then replacing
+        # the bytes in the cache with the bytes from the new array in the
+        # appropriate positions.
+        # This isn't as "pretty" as pasting the image over the old one and
+        # converting the whole thing, but it is more efficient.
+        new_buffer = self.get_frame_buffer(image)
+        width = image.width
+        width_bytes = width // 8
+        panel_width_bytes = self.width // 8
+        height = image.height
+        for h in range(0, height):
+            src_start = h * width_bytes
+            src_end = src_start + width_bytes
+            dst_start = (y+h) * panel_width_bytes + (x // 8)
+            dst_end = dst_start + width_bytes
+            self.cached_buffer[dst_start:dst_end] = new_buffer[src_start:src_end]
+
+        # Finally, draw the image.
+        if self.partial_refresh:
+            self.display_partial(self.cached_buffer, 0, 0, self.width, self.height)
+        else:
+            self.display_full(self.cached_buffer)
